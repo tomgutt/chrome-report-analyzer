@@ -41,9 +41,20 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
       .then(response => response.json())
       .then(data => {
         console.log('Fetch response:', data);
-        // Store any relevant data from the response
-        if (data) {
-          chrome.storage.local.set({ reportData: data });
+        if (data && data.data) {
+          // Extract and process the required information
+          const reportInfo = {
+            id: data.data.id,
+            name: data.data.name,
+            view: data.data.state?.customState?.view || '',
+            filters: Object.keys(data.data.state?.filters || {})
+              .map(filter => filter.replace('reporting.', '')),
+            properties: {
+              left: data.data.state?.customState?.properties?.left || '',
+              right: data.data.state?.customState?.properties?.right || ''
+            }
+          };
+          chrome.storage.local.set({ reportInfo });
         }
       })
       .catch(error => {

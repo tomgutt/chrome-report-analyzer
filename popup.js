@@ -32,20 +32,62 @@ document.addEventListener('DOMContentLoaded', function() {
   const noReportText = reportStatus.querySelector('.no-report');
   const hasReportText = reportStatus.querySelector('.has-report');
   const reportIdSpan = hasReportText.querySelector('.report-id');
+  const reportNameSpan = hasReportText.querySelector('.report-name');
+  const reportViewSpan = hasReportText.querySelector('.report-view');
+  const mainFilter = hasReportText.querySelector('.main-filter');
+  const moreFilters = hasReportText.querySelector('.more-filters');
+  const leftProperty = hasReportText.querySelector('.left-property');
+  const rightProperty = hasReportText.querySelector('.right-property');
   let currentReportId = null;
 
   // Function to update the UI based on report status
   function updateReportStatus(reportId) {
     currentReportId = reportId;
     if (reportId) {
-      noReportText.style.display = 'none';
-      hasReportText.style.display = 'block';
-      reportIdSpan.textContent = reportId;
-      analyzeBtn.disabled = false;
+      chrome.storage.local.get('reportInfo', function(data) {
+        if (data.reportInfo) {
+          const info = data.reportInfo;
+          
+          // Update basic info
+          reportIdSpan.textContent = info.id;
+          reportNameSpan.textContent = info.name;
+          reportViewSpan.textContent = info.view;
+          
+          // Update filters
+          if (info.filters.length > 0) {
+            mainFilter.textContent = info.filters[0];
+            if (info.filters.length > 1) {
+              moreFilters.innerHTML = info.filters.slice(1)
+                .map(filter => `<span>${filter}</span>`)
+                .join('');
+            } else {
+              moreFilters.textContent = 'None';
+            }
+          } else {
+            mainFilter.textContent = 'None';
+            moreFilters.textContent = 'None';
+          }
+          
+          // Update properties
+          leftProperty.textContent = info.properties.left || 'None';
+          rightProperty.textContent = info.properties.right || 'None';
+
+          // Show the report info
+          noReportText.style.display = 'none';
+          hasReportText.style.display = 'block';
+          analyzeBtn.disabled = false;
+        }
+      });
     } else {
       noReportText.style.display = 'block';
       hasReportText.style.display = 'none';
       reportIdSpan.textContent = '';
+      reportNameSpan.textContent = '';
+      reportViewSpan.textContent = '';
+      mainFilter.textContent = '';
+      moreFilters.innerHTML = '';
+      leftProperty.textContent = '';
+      rightProperty.textContent = '';
       analyzeBtn.disabled = true;
     }
   }

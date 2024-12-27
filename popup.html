@@ -17,7 +17,41 @@
       <p>Analyze the current LeanIX report to find relevant fact sheets.</p>
       <div id="reportStatus" class="report-status">
         <p class="no-report">No report detected. Please open a report first.</p>
-        <p class="has-report" style="display: none">Report ID: <span class="report-id"></span></p>
+        <div class="has-report" style="display: none">
+          <div class="report-details-panel">
+            <h3>Report Details</h3>
+            <div class="report-details-content">
+              <div class="detail-row">
+                <span class="detail-label">ID:</span>
+                <span class="report-id detail-value"></span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Name:</span>
+                <span class="report-name detail-value"></span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">View:</span>
+                <span class="report-view detail-value"></span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Main Filter:</span>
+                <div class="main-filter detail-value"></div>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">More Filters:</span>
+                <div class="more-filters detail-value"></div>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Left Property:</span>
+                <div class="left-property detail-value"></div>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Right Property:</span>
+                <div class="right-property detail-value"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <button id="analyzeBtn" class="analyze-button">Analyze Report</button>
