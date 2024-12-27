@@ -5,7 +5,8 @@
   "description": "An AI-powered tool to analyze LeanIX reports and suggest relevant fact sheets",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
     "*://*.leanix.net/*"

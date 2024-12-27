@@ -1,4 +1,9 @@
 @font-face {
+  font-family: 'SAP-icons';
+  src: url('https://ui5.sap.com/resources/sap/ui/core/themes/base/fonts/SAP-icons.woff2') format('woff2');
+}
+
+@font-face {
   font-family: '72';
   src: url('https://ui5.sap.com/resources/sap/ui/core/themes/sap_fiori_3/fonts/72-Regular.woff2') format('woff2');
   font-weight: normal;
@@ -12,25 +17,217 @@
 
 body {
   width: 400px;
+  min-height: 600px;
   padding: 20px;
   font-family: '72', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   color: #32363a;
+  margin: 0;
 }
 
 .container {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 h1 {
   font-size: 24px;
   color: #32363a;
   margin: 0;
-  text-align: center;
   font-weight: bold;
 }
 
+.settings-button {
+  background: none;
+  border: none;
+  color: #0070f2;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.settings-button:hover {
+  background-color: #f5f6f7;
+}
+
+.sap-icon {
+  font-family: 'SAP-icons';
+  font-style: normal;
+  font-size: 18px;
+}
+
+/* Settings Dialog */
+.settings-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #d9d9d9;
+  flex-shrink: 0;
+}
+
+.dialog-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #32363a;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #515559;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.dialog-body {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 400px;
+}
+
+.tab-container {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #d9d9d9;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  color: #515559;
+  font-family: '72', sans-serif;
+  position: relative;
+}
+
+.tab-button.active {
+  color: #0070f2;
+}
+
+.tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #0070f2;
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #32363a;
+  font-size: 14px;
+}
+
+.sap-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-family: '72', sans-serif;
+  font-size: 14px;
+  color: #32363a;
+}
+
+.sap-input:focus {
+  border-color: #0070f2;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 112, 242, 0.2);
+}
+
+.dialog-footer {
+  padding: 16px;
+  border-top: 1px solid #d9d9d9;
+  display: flex;
+  justify-content: flex-end;
+  background: white;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.save-button {
+  background-color: #0070f2;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: '72', sans-serif;
+  font-size: 14px;
+  min-width: 72px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.save-button:hover {
+  background-color: #0050d0;
+}
+
+.save-button:active {
+  background-color: #003d7d;
+}
+
+.placeholder-text {
+  color: #6a6d70;
+  font-style: italic;
+}
+
+/* Existing styles */
 .info-section {
   text-align: center;
   color: #515559;

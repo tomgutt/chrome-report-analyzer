@@ -4,6 +4,94 @@ document.addEventListener('DOMContentLoaded', function() {
   const loadingIndicator = document.querySelector('.loading-indicator');
   const resultsContent = document.querySelector('.results-content');
 
+  // Settings elements
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsDialog = document.getElementById('settingsDialog');
+  const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+  const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+  const tabButtons = document.querySelectorAll('.tab-button');
+  const tabPanes = document.querySelectorAll('.tab-pane');
+
+  // Settings form elements
+  const modelType = document.getElementById('modelType');
+  const endpoint = document.getElementById('endpoint');
+  const apiKey = document.getElementById('apiKey');
+  const apiVersion = document.getElementById('apiVersion');
+  const deploymentName = document.getElementById('deploymentName');
+
+  // Load saved settings
+  chrome.storage.sync.get([
+    'modelType',
+    'endpoint',
+    'apiKey',
+    'apiVersion',
+    'deploymentName'
+  ], function(data) {
+    if (data.modelType) modelType.value = data.modelType;
+    if (data.endpoint) endpoint.value = data.endpoint;
+    if (data.apiKey) apiKey.value = data.apiKey;
+    if (data.apiVersion) apiVersion.value = data.apiVersion;
+    if (data.deploymentName) deploymentName.value = data.deploymentName;
+  });
+
+  // Settings dialog handlers
+  settingsBtn.addEventListener('click', () => {
+    settingsDialog.style.display = 'flex';
+  });
+
+  closeSettingsBtn.addEventListener('click', () => {
+    settingsDialog.style.display = 'none';
+  });
+
+  // Close dialog when clicking outside
+  settingsDialog.addEventListener('click', (e) => {
+    if (e.target === settingsDialog) {
+      settingsDialog.style.display = 'none';
+    }
+  });
+
+  // Tab handling
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      // Remove active class from all buttons and panes
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabPanes.forEach(pane => pane.classList.remove('active'));
+
+      // Add active class to clicked button and corresponding pane
+      button.classList.add('active');
+      document.getElementById(button.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Save settings
+  saveSettingsBtn.addEventListener('click', () => {
+    const settings = {
+      modelType: modelType.value,
+      endpoint: endpoint.value,
+      apiKey: apiKey.value,
+      apiVersion: apiVersion.value,
+      deploymentName: deploymentName.value
+    };
+
+    chrome.storage.sync.set(settings, function() {
+      // Show success message
+      const successMessage = document.createElement('div');
+      successMessage.textContent = 'Settings saved successfully!';
+      successMessage.style.color = '#107e3e';
+      successMessage.style.textAlign = 'center';
+      successMessage.style.padding = '8px';
+      
+      const footer = document.querySelector('.dialog-footer');
+      footer.insertBefore(successMessage, saveSettingsBtn);
+
+      // Remove message after 2 seconds
+      setTimeout(() => {
+        successMessage.remove();
+        settingsDialog.style.display = 'none';
+      }, 2000);
+    });
+  });
+
   // Check if we're on a LeanIX page
   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
     const currentUrl = tabs[0].url;

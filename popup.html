@@ -3,10 +3,16 @@
 <head>
   <title>AI Report Analyzer</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://ui5.sap.com/resources/sap/ui/core/themes/sap_fiori_3/library.css">
 </head>
 <body>
   <div class="container">
-    <h1>AI Report Analyzer</h1>
+    <div class="header">
+      <h1>AI Report Analyzer</h1>
+      <button id="settingsBtn" class="settings-button" aria-label="Settings">
+        <i class="sap-icon">&#xe0a6;</i>
+      </button>
+    </div>
     <div class="info-section">
       <p>Analyze the current LeanIX report to find relevant fact sheets.</p>
     </div>
@@ -19,6 +25,67 @@
       <div class="results-content"></div>
     </div>
   </div>
+
+  <!-- Settings Dialog -->
+  <div id="settingsDialog" class="settings-dialog" style="display: none;">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h2>Settings</h2>
+        <button class="close-button" id="closeSettingsBtn" aria-label="Close">
+          <i class="sap-icon">&#xe03e;</i>
+        </button>
+      </div>
+      
+      <div class="dialog-body">
+        <div class="tab-container">
+          <button class="tab-button active" data-tab="general">General</button>
+          <button class="tab-button" data-tab="ai-model">AI Model</button>
+        </div>
+
+        <div class="tab-content">
+          <div id="general" class="tab-pane active">
+            <p class="placeholder-text">General settings will be added soon.</p>
+          </div>
+
+          <div id="ai-model" class="tab-pane">
+            <div class="form-group">
+              <label for="modelType">Model Type</label>
+              <select id="modelType" class="sap-input">
+                <option value="azure">Azure</option>
+                <option value="openai">OpenAI</option>
+                <option value="genai">GenAI Hub</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="endpoint">Endpoint</label>
+              <input type="text" id="endpoint" class="sap-input" placeholder="Enter endpoint URL">
+            </div>
+
+            <div class="form-group">
+              <label for="apiKey">API Key</label>
+              <input type="password" id="apiKey" class="sap-input" placeholder="Enter API key">
+            </div>
+
+            <div class="form-group">
+              <label for="apiVersion">API Version</label>
+              <input type="text" id="apiVersion" class="sap-input" placeholder="Enter API version">
+            </div>
+
+            <div class="form-group">
+              <label for="deploymentName">Deployment Name</label>
+              <input type="text" id="deploymentName" class="sap-input" placeholder="Enter deployment name">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button id="saveSettingsBtn" class="save-button">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
