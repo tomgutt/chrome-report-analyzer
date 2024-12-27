@@ -1,23 +1,72 @@
 // Store the current report ID
 let currentReportId = null;
 
-// Pattern for report URLs
-const reportUrlPattern = /\/services\/pathfinder\/v1\/bookmarks\/([a-f0-9-]+)\?/;
+// Track failed and processed requests
+const failedRequests = new Set();
+const processedRequests = new Set();
+
+// Pattern for report URLs with markAsViewed=true
+const reportUrlPattern = /\/services\/pathfinder\/v1\/bookmarks\/([a-f0-9-]+)\?.*markAsViewed=true/;
 
 // Listen for network requests
+chrome.webRequest.onBeforeSendHeaders.addListener(
+  (details) => {
+    // Skip if this URL has already been processed or failed
+    if (failedRequests.has(details.url) || processedRequests.has(details.url)) {
+      return;
+    }
+
+    // Check if URL matches our pattern with markAsViewed=true
+    const match = details.url.match(reportUrlPattern);
+    if (!match) {
+      return;
+    }
+
+    console.log('Intercepted request:', details.url);
+
+    // Mark this URL as processed
+    processedRequests.add(details.url);
+
+    const authHeader = details.requestHeaders.find(header => 
+      header.name.toLowerCase() === 'authorization'
+    );
+    if (authHeader) {
+      // Recreate the request with the captured auth header
+      fetch(details.url, {
+        method: 'GET',
+        headers: {
+          'Authorization': authHeader.value
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Fetch response:', data);
+        // Store any relevant data from the response
+        if (data) {
+          chrome.storage.local.set({ reportData: data });
+        }
+      })
+      .catch(error => {
+        console.error('Error recreating request:', error);
+        failedRequests.add(details.url);
+      });
+    }
+  },
+  {
+    urls: ["*://*.leanix.net/services/pathfinder/v1/bookmarks/*"]
+  },
+  ["requestHeaders"]
+);
+
+// Listen for completed requests
 chrome.webRequest.onCompleted.addListener(
   (details) => {
-    console.log('Request intercepted:', details.url); // Debug log
     const match = details.url.match(reportUrlPattern);
     if (match) {
       const reportId = match[1];
-      console.log('Report ID found:', reportId); // Debug log
       if (reportId !== currentReportId) {
         currentReportId = reportId;
-        // Store the report ID
-        chrome.storage.local.set({ currentReportId: reportId }, () => {
-          console.log('Report ID stored:', reportId); // Debug log
-        });
+        chrome.storage.local.set({ currentReportId: reportId });
       }
     }
   },
