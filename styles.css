@@ -233,10 +233,14 @@ h1 {
 
 /* Existing styles */
 .info-section {
-  text-align: center;
-  color: #515559;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.4;
+}
+
+.info-text {
+  color: #32363a;
+  text-align: left;
+  margin: 0 0 16px 0;
 }
 
 .analyze-button {
@@ -471,6 +475,7 @@ h1 {
   border-radius: 4px;
   flex: 1;
   min-width: 0;
+  text-align: center;
 }
 
 .filter-list {
@@ -482,6 +487,7 @@ h1 {
 .filter-list span {
   display: block;
   padding: 4px 0;
+  text-align: center;
 }
 
 .properties-content {
@@ -493,4 +499,5 @@ h1 {
 .properties-content p {
   margin: 0;
   padding: 4px 0;
+  text-align: center;
 }

@@ -54,7 +54,14 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
               right: data.data.state?.customState?.properties?.right || ''
             }
           };
-          chrome.storage.local.set({ reportInfo });
+          
+          // Store the data and notify any open popups
+          chrome.storage.local.set({ reportInfo, currentReportId: reportInfo.id }, () => {
+            chrome.runtime.sendMessage({
+              action: 'reportDetected',
+              reportId: reportInfo.id
+            });
+          });
         }
       })
       .catch(error => {
