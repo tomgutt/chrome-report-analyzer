@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "AI Report Analyzer",
+  "version": "1.0",
+  "description": "An AI-powered tool to analyze LeanIX reports and suggest relevant fact sheets",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*.leanix.net/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.leanix.net/*"],
+      "js": ["content.js"]
+    }
+  ]
+}

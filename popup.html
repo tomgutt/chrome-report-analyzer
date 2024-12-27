@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Report Analyzer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>AI Report Analyzer</h1>
+    <div class="info-section">
+      <p>Analyze the current LeanIX report to find relevant fact sheets.</p>
+    </div>
+    <button id="analyzeBtn" class="analyze-button">Analyze Report</button>
+    <div id="results" class="results-section">
+      <div class="loading-indicator" style="display: none;">
+        <div class="spinner"></div>
+        <p>Analyzing report content...</p>
+      </div>
+      <div class="results-content"></div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
