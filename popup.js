@@ -27,6 +27,72 @@ document.addEventListener('DOMContentLoaded', function() {
   const endpointGroup = endpoint.closest('.form-group');
   const apiVersionGroup = apiVersion.closest('.form-group');
 
+  // Report status elements
+  const reportStatus = document.getElementById('reportStatus');
+  const noReportText = reportStatus.querySelector('.no-report');
+  const hasReportText = reportStatus.querySelector('.has-report');
+  const reportIdSpan = hasReportText.querySelector('.report-id');
+  let currentReportId = null;
+
+  // Function to update the UI based on report status
+  function updateReportStatus(reportId) {
+    currentReportId = reportId;
+    if (reportId) {
+      noReportText.style.display = 'none';
+      hasReportText.style.display = 'block';
+      reportIdSpan.textContent = reportId;
+      analyzeBtn.disabled = false;
+    } else {
+      noReportText.style.display = 'block';
+      hasReportText.style.display = 'none';
+      reportIdSpan.textContent = '';
+      analyzeBtn.disabled = true;
+    }
+  }
+
+  // Listen for report detection messages from content script
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.action === 'reportDetected') {
+      updateReportStatus(message.reportId);
+    }
+  });
+
+  // Check initial report status when popup opens
+  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    const currentUrl = tabs[0].url;
+    if (!currentUrl.includes('leanix.net')) {
+      analyzeBtn.disabled = true;
+      resultsContent.innerHTML = '<p>Please open this extension while viewing a LeanIX report.</p>';
+      results.style.display = 'block';
+      return;
+    }
+
+    // First check if we have a stored report ID
+    chrome.storage.local.get('currentReportId', function(data) {
+      const storedReportId = data.currentReportId;
+      
+      // If we have a stored ID, verify it's in the current URL
+      if (storedReportId) {
+        if (currentUrl.includes(storedReportId)) {
+          updateReportStatus(storedReportId);
+        } else {
+          // Clear the stored ID if it doesn't match current URL
+          chrome.storage.local.remove('currentReportId');
+          updateReportStatus(null);
+        }
+      } else {
+        // If no stored ID, check with content script
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'checkReport' }, function(response) {
+          if (response && response.hasReport) {
+            updateReportStatus(response.reportId);
+          } else {
+            updateReportStatus(null);
+          }
+        });
+      }
+    });
+  });
+
   // Handle provider change
   function updateFormFields() {
     const isOpenAI = modelType.value === 'openai';

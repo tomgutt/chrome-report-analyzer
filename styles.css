@@ -406,3 +406,24 @@ h1 {
 .connection-status.error {
   color: #bb0000;
 }
+
+.report-status {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.report-status .no-report {
+  color: #bb0000;
+}
+
+.report-status .has-report {
+  color: #107e3e;
+}
+
+.report-status .report-id {
+  font-family: monospace;
+  background: #f7f7f7;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+}
