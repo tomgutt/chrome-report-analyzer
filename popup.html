@@ -49,7 +49,7 @@
 
           <div id="ai-model" class="tab-pane">
             <div class="form-group">
-              <label for="modelType">Model Type</label>
+              <label for="modelType">Provider</label>
               <select id="modelType" class="sap-input">
                 <option value="azure">Azure</option>
                 <option value="openai">OpenAI</option>
@@ -60,6 +60,7 @@
             <div class="form-group">
               <label for="endpoint">Endpoint</label>
               <input type="text" id="endpoint" class="sap-input" placeholder="Enter endpoint URL">
+              <div id="endpointError" class="input-error" style="display: none;">Endpoint must start with "http:// or https://"</div>
             </div>
 
             <div class="form-group">
@@ -73,14 +74,16 @@
             </div>
 
             <div class="form-group">
-              <label for="deploymentName">Deployment Name</label>
+              <label for="deploymentName" id="deploymentLabel">Deployment Name</label>
               <input type="text" id="deploymentName" class="sap-input" placeholder="Enter deployment name">
+              <div id="modelHelp" class="help-text"></div>
             </div>
           </div>
         </div>
       </div>
 
       <div class="dialog-footer">
+        <button id="testConnectionBtn" class="test-button">Test</button>
         <button id="saveSettingsBtn" class="save-button">Save</button>
       </div>
     </div>

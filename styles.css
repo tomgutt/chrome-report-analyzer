@@ -161,6 +161,9 @@ h1 {
 
 .form-group {
   margin-bottom: 16px;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .form-group label {
@@ -172,6 +175,7 @@ h1 {
 
 .sap-input {
   width: 100%;
+  box-sizing: border-box;
   padding: 8px;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
@@ -190,7 +194,7 @@ h1 {
   padding: 16px;
   border-top: 1px solid #d9d9d9;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   background: white;
   position: sticky;
   bottom: 0;
@@ -305,4 +309,100 @@ h1 {
   margin: 0;
   color: #515559;
   font-size: 13px;
+}
+
+.input-error {
+  color: #bb0000;
+  font-size: 12px;
+  margin-top: 4px;
+  display: none;
+}
+
+.sap-input.error {
+  border-color: #bb0000;
+  background-color: #fff8f8;
+}
+
+.sap-input.error:focus {
+  border-color: #bb0000;
+  box-shadow: 0 0 0 2px rgba(187, 0, 0, 0.2);
+}
+
+.sap-input[title] {
+  cursor: help;
+}
+
+.sap-input[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  background: #354a5f;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-top: -30px;
+  margin-left: 8px;
+  white-space: nowrap;
+  z-index: 1000;
+}
+
+.help-text {
+  color: #6a6d70;
+  font-size: 12px;
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
+.button-group {
+  display: flex;
+  gap: 8px;
+}
+
+.test-button {
+  background-color: #fff;
+  color: #0070f2;
+  border: 1px solid #0070f2;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: '72', sans-serif;
+  font-size: 14px;
+  min-width: 72px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.test-button:hover {
+  background-color: #f5f6f7;
+}
+
+.test-button:active {
+  background-color: #e5e5e5;
+}
+
+.test-button:disabled,
+.save-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-right: auto;
+}
+
+.connection-status.success {
+  color: #107e3e;
+}
+
+.connection-status.error {
+  color: #bb0000;
 }
