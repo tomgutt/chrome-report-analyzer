@@ -1,3 +1,5 @@
+import { fillPromptTemplate } from './prompt-template.js';
+
 document.addEventListener('DOMContentLoaded', function() {
   const analyzeBtn = document.getElementById('analyzeBtn');
   const results = document.getElementById('results');
@@ -525,6 +527,12 @@ document.addEventListener('DOMContentLoaded', function() {
         throw new Error('No report ID found');
       }
 
+      // Get report info from storage
+      const { reportInfo } = await chrome.storage.local.get('reportInfo');
+      if (!reportInfo) {
+        throw new Error('No report info found');
+      }
+
       // Actually resolve UUIDs
       console.log('Beginning UUID resolution...');
       const resolution = await resolveUUIDs(currentReportId);
@@ -535,27 +543,25 @@ document.addEventListener('DOMContentLoaded', function() {
       const transformedData = transformJsonStructure(resolution.edges);
       console.log('Transformed data:', transformedData);
       
-      // Here you would typically send the transformed data to your AI service
+      // Fill the prompt template with report data
+      const promptVariables = {
+        mainFilter: reportInfo.mainFilter,
+        moreFilters: reportInfo.moreFilters.join(', '),
+        reportView: reportInfo.view,
+        leftProperty: reportInfo.properties.left || 'None',
+        rightProperty: reportInfo.properties.right || 'None'
+      };
+      const prompt = fillPromptTemplate(promptVariables);
+      console.log('Generated prompt:', prompt);
+      
+      // Here you would send the prompt to your AI service
       analyzeBtn.textContent = 'Analyzing with AI...';
-      console.log('Simulating AI analysis...');
-      await simulateAIAnalysis();
+      // TODO: Replace with actual AI service call
+      const analysis = await doAIAnalysis(prompt, transformedData);
       
       // Display results
       console.log('Displaying results...');
-      displayResults([
-        {
-          title: 'Application XYZ',
-          type: 'Application',
-          relevance: 0.95,
-          reason: 'This application is directly mentioned in the report and appears to be a key system in the discussed process.'
-        },
-        {
-          title: 'Customer Data Service',
-          type: 'Interface',
-          relevance: 0.85,
-          reason: 'The report discusses data flow patterns that heavily involve this service.'
-        }
-      ]);
+      displayResults(analysis);
     } catch (error) {
       console.error('Error during analysis:', error);
       console.error('Error stack:', error.stack);
@@ -578,9 +584,7 @@ document.addEventListener('DOMContentLoaded', function() {
     factSheets.forEach(sheet => {
       html += `
         <div class="fact-sheet">
-          <h3>${sheet.title}</h3>
-          <p><strong>Type:</strong> ${sheet.type}</p>
-          <p><strong>Relevance:</strong> ${(sheet.relevance * 100).toFixed(0)}%</p>
+          <h3>${sheet.id}</h3>
           <p><strong>Why relevant:</strong> ${sheet.reason}</p>
         </div>
       `;
@@ -589,9 +593,10 @@ document.addEventListener('DOMContentLoaded', function() {
     resultsContent.innerHTML = html;
   }
 
-  // Simulate AI analysis delay
-  function simulateAIAnalysis() {
-    return new Promise(resolve => setTimeout(resolve, 2000));
+  // Do AI analysis 
+  function doAIAnalysis(prompt, transformedData) {
+    console.log('Prompt:', prompt);
+
   }
 
   // Test connection functionality
