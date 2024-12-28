@@ -283,8 +283,8 @@ chrome.webRequest.onSendHeaders.addListener(
                           const mergedEdges = mergeEdges(existingEdges, data.data.current.edges);
                           edgeCollections.set(collectionKey, mergedEdges);
                           
-                          console.log(`Updated edges for ${collectionKey} (${mergedEdges.length} unique nodes):`);
-                          console.log(mergedEdges);
+                          console.log(`Updated edges for ${collectionKey} (${mergedEdges.length} unique nodes)`);
+                          // console.log(mergedEdges); // keep for debugging
 
                           // Clean up temporary storage after all merges are done
                           cleanupTempStorage();

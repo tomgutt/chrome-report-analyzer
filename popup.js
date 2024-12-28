@@ -109,21 +109,19 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    // First check if we have a stored report ID
-    chrome.storage.local.get('currentReportId', function(data) {
-      const storedReportId = data.currentReportId;
-      
-      // If we have a stored ID, verify it's in the current URL
-      if (storedReportId) {
-        if (currentUrl.includes(storedReportId)) {
-          updateReportStatus(storedReportId);
+    // Check if we have stored report info
+    chrome.storage.local.get('reportInfo', function(data) {
+      if (data.reportInfo) {
+        // If we have stored info, verify the ID is in the current URL
+        if (currentUrl.includes(data.reportInfo.id)) {
+          updateReportStatus(data.reportInfo.id);
         } else {
-          // Clear the stored ID if it doesn't match current URL
-          chrome.storage.local.remove('currentReportId');
+          // Clear the stored info if it doesn't match current URL
+          chrome.storage.local.remove('reportInfo');
           updateReportStatus(null);
         }
       } else {
-        // If no stored ID, check with content script
+        // If no stored info, check with content script
         chrome.tabs.sendMessage(tabs[0].id, { action: 'checkReport' }, function(response) {
           if (response && response.hasReport) {
             updateReportStatus(response.reportId);

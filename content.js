@@ -17,24 +17,24 @@ const reportUrlPattern = /\/services\/pathfinder\/v1\/bookmarks\/([a-f0-9-]+)\?/
 
 // Check for report on page load and URL changes
 async function checkForReport() {
-  // First check storage for any known report ID from network requests
-  const storage = await chrome.storage.local.get('currentReportId');
-  const storedReportId = storage.currentReportId;
+  // Check storage for report info
+  const storage = await chrome.storage.local.get('reportInfo');
+  const reportInfo = storage.reportInfo;
 
   // Check if the report ID is in the current URL
   const currentUrl = window.location.href;
-  const urlMatch = currentUrl.includes(storedReportId);
+  const urlMatch = reportInfo && currentUrl.includes(reportInfo.id);
 
-  if (storedReportId && urlMatch) {
+  if (reportInfo && urlMatch) {
     return {
       hasReport: true,
-      reportId: storedReportId
+      reportId: reportInfo.id
     };
   }
 
-  // If conditions aren't met, clear the stored report ID
-  if (storedReportId && !urlMatch) {
-    chrome.storage.local.remove('currentReportId');
+  // If conditions aren't met, clear the stored report info
+  if (reportInfo && !urlMatch) {
+    chrome.storage.local.remove('reportInfo');
   }
 
   return {
