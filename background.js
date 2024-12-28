@@ -72,6 +72,32 @@ function debugStorage() {
   });
 }
 
+function clearStorage() { // only used for debugging
+  chrome.storage.local.clear(() => {
+    console.log('chrome.storage.local has been cleared');
+    // Also clear our in-memory tracking
+    graphqlRequests.clear();
+    edgeCollections.clear();
+    processedRequests.clear();
+    failedRequests.clear();
+    currentReportId = null;
+  });
+}
+
+function cleanupTempStorage() {
+  chrome.storage.local.get(null, function(items) {
+    // Get all keys that start with 'request_' or 'auth_'
+    const keysToRemove = Object.keys(items).filter(key => 
+      key.startsWith('request_') || key.startsWith('auth_')
+    );
+    if (keysToRemove.length > 0) {
+      chrome.storage.local.remove(keysToRemove, () => {
+        console.log('Temporary storage items cleared:', keysToRemove);
+      });
+    }
+  });
+}
+
 // Listen for GraphQL requests
 chrome.webRequest.onBeforeRequest.addListener(
   (details) => {
@@ -236,6 +262,7 @@ chrome.webRequest.onSendHeaders.addListener(
                   chrome.storage.local.get(key, (requestData) => {
                     if (requestData[key]) {
                       const { url, body } = requestData[key];
+                      console.log('Fetching GraphQL data from:', url);
                       fetch(url, {
                         method: 'POST',
                         headers: {
@@ -258,6 +285,9 @@ chrome.webRequest.onSendHeaders.addListener(
                           
                           console.log(`Updated edges for ${collectionKey} (${mergedEdges.length} unique nodes):`);
                           console.log(mergedEdges);
+
+                          // Clean up temporary storage after all merges are done
+                          cleanupTempStorage();
                         }
                       })
                       .catch(error => {
@@ -302,7 +332,6 @@ chrome.webRequest.onCompleted.addListener(
         // Clear processed and failed requests when switching to a new report
         processedRequests.clear();
         failedRequests.clear();
-        chrome.storage.local.set({ currentReportId: reportId });
       }
     }
   },
