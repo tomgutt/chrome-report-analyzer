@@ -44,7 +44,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateReportStatus(reportId) {
     currentReportId = reportId;
     if (reportId) {
-      chrome.storage.local.get('reportInfo', function(data) {
+      // Get all storage data to properly count edges
+      chrome.storage.local.get(null, function(data) {
         if (data.reportInfo) {
           const info = data.reportInfo;
           
@@ -53,18 +54,31 @@ document.addEventListener('DOMContentLoaded', function() {
           reportNameSpan.textContent = info.name;
           reportViewSpan.textContent = info.view;
           
-          // Update filters
-          if (info.filters.length > 0) {
-            mainFilter.textContent = info.filters[0];
-            if (info.filters.length > 1) {
-              moreFilters.innerHTML = info.filters.slice(1)
-                .map(filter => `<span>${filter}</span>`)
-                .join('');
-            } else {
-              moreFilters.textContent = 'None';
+          // Get edge counts for each filter type
+          const edgeCounts = {};
+          Object.keys(data).forEach(key => {
+            if (key.startsWith(`edges_${reportId}.`)) {
+              const type = key.split('.')[1];
+              edgeCounts[type] = data[key].length;
             }
+          });
+          
+          // Update filters with edge counts
+          if (info.mainFilter) {
+            const mainFilterCount = edgeCounts[info.mainFilter] || 0;
+            mainFilter.textContent = `${info.mainFilter} (${mainFilterCount})`;
           } else {
             mainFilter.textContent = 'None';
+          }
+
+          if (info.moreFilters.length > 0) {
+            moreFilters.innerHTML = info.moreFilters
+              .map(filter => {
+                const count = edgeCounts[filter] || 0;
+                return `<span>${filter} (${count})</span>`;
+              })
+              .join('');
+          } else {
             moreFilters.textContent = 'None';
           }
           

@@ -73,22 +73,34 @@ function debugStorage() {
 }
 
 function clearStorage() { // only used for debugging
-  chrome.storage.local.clear(() => {
-    console.log('chrome.storage.local has been cleared');
-    // Also clear our in-memory tracking
-    graphqlRequests.clear();
-    edgeCollections.clear();
-    processedRequests.clear();
-    failedRequests.clear();
-    currentReportId = null;
+  chrome.storage.local.get(null, function(items) {
+    // Get all keys that we manage (request_, auth_, edges_)
+    const keysToRemove = Object.keys(items).filter(key => 
+      key.startsWith('request_') || 
+      key.startsWith('auth_') || 
+      key.startsWith('edges_')
+    );
+    if (keysToRemove.length > 0) {
+      chrome.storage.local.remove(keysToRemove, () => {
+        console.log('Storage items cleared:', keysToRemove);
+        // Also clear our in-memory tracking
+        graphqlRequests.clear();
+        edgeCollections.clear();
+        processedRequests.clear();
+        failedRequests.clear();
+        currentReportId = null;
+      });
+    }
   });
 }
 
 function cleanupTempStorage() {
   chrome.storage.local.get(null, function(items) {
     // Get all keys that start with 'request_' or 'auth_'
+    // but not 'edges_' which we want to preserve
     const keysToRemove = Object.keys(items).filter(key => 
-      key.startsWith('request_') || key.startsWith('auth_')
+      (key.startsWith('request_') || key.startsWith('auth_')) &&
+      !key.startsWith('edges_')
     );
     if (keysToRemove.length > 0) {
       chrome.storage.local.remove(keysToRemove, () => {
@@ -213,12 +225,16 @@ chrome.webRequest.onSendHeaders.addListener(
       .then(data => {
         if (data?.data) {
           // Extract and store the report information
+          const allFilters = Object.keys(data.data.state?.filters || {})
+            .map(filter => filter.replace('reporting.', ''));
+            
           const reportInfo = {
             id: data.data.id,
             name: data.data.name,
             view: data.data.state?.customState?.view || '',
-            filters: Object.keys(data.data.state?.filters || {})
-              .map(filter => filter.replace('reporting.', '')),
+            filters: allFilters,
+            mainFilter: allFilters[0] || '',
+            moreFilters: allFilters.slice(1) || [],
             properties: {
               left: data.data.state?.customState?.properties?.left || '',
               right: data.data.state?.customState?.properties?.right || ''
@@ -237,25 +253,25 @@ chrome.webRequest.onSendHeaders.addListener(
             if (requestData) {
               console.log(`Found ${requestData.total} related GraphQL requests`);
               
-              const mainFilter = reportInfo.filters[0];
-              const moreFilters = reportInfo.filters.slice(1);
-              
               console.log('Filters found in report:');
-              console.log(`- Main filter: ${mainFilter}`);
-              console.log(`- More filters: ${moreFilters.join(', ') || 'none'}`);
+              console.log(`- Main filter: ${reportInfo.mainFilter}`);
+              console.log(`- More filters: ${reportInfo.moreFilters.join(', ') || 'none'}`);
               
               // Log requests by filter type
-              const mainFilterCount = requestData.byType.get(mainFilter) || 0;
+              const mainFilterCount = requestData.byType.get(reportInfo.mainFilter) || 0;
               console.log(`\nGraphQL requests by filter type:`);
-              console.log(`- Main filter (${mainFilter}): ${mainFilterCount} requests`);
+              console.log(`- Main filter (${reportInfo.mainFilter}): ${mainFilterCount} requests`);
               
-              moreFilters.forEach(filter => {
+              reportInfo.moreFilters.forEach(filter => {
                 const filterCount = requestData.byType.get(filter) || 0;
                 console.log(`- More filter (${filter}): ${filterCount} requests`);
               });
 
               // Re-fetch all stored requests
               const authToken = authHeader.value;
+              let completedRequests = 0;
+              const totalRequests = [...requestData.byType.entries()].reduce((sum, [_, count]) => sum + count, 0);
+
               [...requestData.byType.entries()].forEach(([type, count]) => {
                 for (let i = 0; i < count; i++) {
                   const key = `request_${reportId}_${type}_${i}`;
@@ -286,12 +302,32 @@ chrome.webRequest.onSendHeaders.addListener(
                           console.log(`Updated edges for ${collectionKey} (${mergedEdges.length} unique nodes)`);
                           // console.log(mergedEdges); // keep for debugging
 
-                          // Clean up temporary storage after all merges are done
-                          cleanupTempStorage();
+                          // Store the merged edges in chrome.storage.local
+                          chrome.storage.local.set({
+                            [`edges_${collectionKey}`]: mergedEdges
+                          }, () => {
+                            console.log(`Saved edges for ${collectionKey} to storage`);
+                            completedRequests++;
+                            
+                            // Only clean up after all requests are processed
+                            if (completedRequests === totalRequests) {
+                              console.log('All GraphQL requests processed, cleaning up temporary storage');
+                              // debugStorage(); // keep for debugging
+                              cleanupTempStorage();
+                            }
+                          });
                         }
                       })
                       .catch(error => {
                         console.error('Error fetching GraphQL data:', error);
+                        completedRequests++;
+                        
+                        // Even if there's an error, we should clean up if this was the last request
+                        if (completedRequests === totalRequests) {
+                          console.log('All GraphQL requests processed (with some errors), cleaning up temporary storage');
+                          // debugStorage(); // keep for debugging
+                          cleanupTempStorage();
+                        }
                       });
                     }
                   });
