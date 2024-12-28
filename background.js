@@ -64,12 +64,21 @@ function mergeEdges(existingEdges, newEdges) {
   return Array.from(edgeMap.values());
 }
 
+// Debug helper function
+function debugStorage() {
+  chrome.storage.local.get(null, function(items) {
+    console.log('Current chrome.storage.local contents:');
+    console.log(JSON.stringify(items, null, 2));
+  });
+}
+
 // Listen for GraphQL requests
 chrome.webRequest.onBeforeRequest.addListener(
   (details) => {
     const match = details.url.match(graphqlPattern);
     if (match && details.requestBody) {
       const bookmarkId = match[1];
+      console.log("Intercepted GraphQL request for bookmarkId:", bookmarkId);
       
       try {
         // Get the request body from form data
@@ -148,6 +157,7 @@ chrome.webRequest.onSendHeaders.addListener(
   (details) => {
     // Skip if this URL has already been processed or failed
     if (failedRequests.has(details.url) || processedRequests.has(details.url)) {
+      console.log("Skipping already processed or failed request:", details.url);
       return;
     }
 
@@ -161,79 +171,117 @@ chrome.webRequest.onSendHeaders.addListener(
     const requestData = graphqlRequests.get(reportId);
     console.log(`Intercepted report request for ID ${reportId}`);
     
-    if (requestData) {
-      console.log(`Found ${requestData.total} related GraphQL requests`);
-      
-      // Get the filters from storage
-      chrome.storage.local.get(['reportInfo', `auth_${reportId}`], (data) => {
-        if (data.reportInfo) {
-          const mainFilter = data.reportInfo.filters[0];
-          const moreFilters = data.reportInfo.filters.slice(1);
-          
-          console.log('Filters found in report:');
-          console.log(`- Main filter: ${mainFilter}`);
-          console.log(`- More filters: ${moreFilters.join(', ') || 'none'}`);
-          
-          // Log requests by filter type
-          const mainFilterCount = requestData.byType.get(mainFilter) || 0;
-          console.log(`\nGraphQL requests by filter type:`);
-          console.log(`- Main filter (${mainFilter}): ${mainFilterCount} requests`);
-          
-          moreFilters.forEach(filter => {
-            const filterCount = requestData.byType.get(filter) || 0;
-            console.log(`- More filter (${filter}): ${filterCount} requests`);
-          });
+    // Get the report data first
+    const authHeader = details.requestHeaders.find(header => 
+      header.name.toLowerCase() === 'authorization'
+    );
 
-          // Re-fetch all stored requests
-          const authToken = data[`auth_${reportId}`];
-          if (authToken) {
-            [...requestData.byType.entries()].forEach(([type, count]) => {
-              for (let i = 0; i < count; i++) {
-                const key = `request_${reportId}_${type}_${i}`;
-                chrome.storage.local.get(key, (requestData) => {
-                  if (requestData[key]) {
-                    const { url, body } = requestData[key];
-                    fetch(url, {
-                      method: 'POST',
-                      headers: {
-                        'Authorization': authToken,
-                        'Content-Type': 'application/json'
-                      },
-                      body: body
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                      if (data?.data?.current?.edges) {
-                        const collectionKey = `${reportId}.${type}`;
-                        
-                        // Get existing edges or initialize empty array
-                        const existingEdges = edgeCollections.get(collectionKey) || [];
-                        
-                        // Merge new edges with existing ones
-                        const mergedEdges = mergeEdges(existingEdges, data.data.current.edges);
-                        edgeCollections.set(collectionKey, mergedEdges);
-                        
-                        console.log(`Updated edges for ${collectionKey} (${mergedEdges.length} unique nodes):`);
-                        console.log(mergedEdges);
-                      }
-                    })
-                    .catch(error => {
-                      console.error('Error fetching GraphQL data:', error);
-                    });
-                  }
-                });
-              }
-            });
-          }
+    if (authHeader) {
+      fetch(details.url, {
+        method: 'GET',
+        headers: {
+          'Authorization': authHeader.value
         }
-      });
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data?.data) {
+          // Extract and store the report information
+          const reportInfo = {
+            id: data.data.id,
+            name: data.data.name,
+            view: data.data.state?.customState?.view || '',
+            filters: Object.keys(data.data.state?.filters || {})
+              .map(filter => filter.replace('reporting.', '')),
+            properties: {
+              left: data.data.state?.customState?.properties?.left || '',
+              right: data.data.state?.customState?.properties?.right || ''
+            }
+          };
+          
+          // Store the report info
+          chrome.storage.local.set({ reportInfo }, () => {
+            // Notify any open popups about the new report
+            chrome.runtime.sendMessage({
+              action: 'reportDetected',
+              reportId: reportInfo.id
+            });
 
-      // Clear the GraphQL requests for this report
-      graphqlRequests.delete(reportId);
-    } else {
-      console.log('No related GraphQL requests found');
+            // Now process the GraphQL requests if we have any
+            if (requestData) {
+              console.log(`Found ${requestData.total} related GraphQL requests`);
+              
+              const mainFilter = reportInfo.filters[0];
+              const moreFilters = reportInfo.filters.slice(1);
+              
+              console.log('Filters found in report:');
+              console.log(`- Main filter: ${mainFilter}`);
+              console.log(`- More filters: ${moreFilters.join(', ') || 'none'}`);
+              
+              // Log requests by filter type
+              const mainFilterCount = requestData.byType.get(mainFilter) || 0;
+              console.log(`\nGraphQL requests by filter type:`);
+              console.log(`- Main filter (${mainFilter}): ${mainFilterCount} requests`);
+              
+              moreFilters.forEach(filter => {
+                const filterCount = requestData.byType.get(filter) || 0;
+                console.log(`- More filter (${filter}): ${filterCount} requests`);
+              });
+
+              // Re-fetch all stored requests
+              const authToken = authHeader.value;
+              [...requestData.byType.entries()].forEach(([type, count]) => {
+                for (let i = 0; i < count; i++) {
+                  const key = `request_${reportId}_${type}_${i}`;
+                  chrome.storage.local.get(key, (requestData) => {
+                    if (requestData[key]) {
+                      const { url, body } = requestData[key];
+                      fetch(url, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': authToken,
+                          'Content-Type': 'application/json'
+                        },
+                        body: body
+                      })
+                      .then(response => response.json())
+                      .then(data => {
+                        if (data?.data?.current?.edges) {
+                          const collectionKey = `${reportId}.${type}`;
+                          
+                          // Get existing edges or initialize empty array
+                          const existingEdges = edgeCollections.get(collectionKey) || [];
+                          
+                          // Merge new edges with existing ones
+                          const mergedEdges = mergeEdges(existingEdges, data.data.current.edges);
+                          edgeCollections.set(collectionKey, mergedEdges);
+                          
+                          console.log(`Updated edges for ${collectionKey} (${mergedEdges.length} unique nodes):`);
+                          console.log(mergedEdges);
+                        }
+                      })
+                      .catch(error => {
+                        console.error('Error fetching GraphQL data:', error);
+                      });
+                    }
+                  });
+                }
+              });
+            } else {
+              console.log('No related GraphQL requests found');
+            }
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching report data:', error);
+        failedRequests.add(details.url);
+      });
     }
 
+    // Clear the GraphQL requests for this report
+    graphqlRequests.delete(reportId);
+    
     // Mark this URL as processed
     processedRequests.add(details.url);
   },
@@ -251,6 +299,9 @@ chrome.webRequest.onCompleted.addListener(
       const reportId = match[1];
       if (reportId !== currentReportId) {
         currentReportId = reportId;
+        // Clear processed and failed requests when switching to a new report
+        processedRequests.clear();
+        failedRequests.clear();
         chrome.storage.local.set({ currentReportId: reportId });
       }
     }
