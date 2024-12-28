@@ -21,7 +21,7 @@ REPORT SETTINGS:
     The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
 
 OUTPUT:
-    Give me a JSON with a list of objects. Each object should have the following properties:
+    Give me a JSON with a list "factSheets". Each object should have the following properties:
     - id: The id of the \${mainFilter}
     - reason: A short reason (1-2 sentences) why you identified it as relevant to look at. 
 

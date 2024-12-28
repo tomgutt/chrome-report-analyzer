@@ -552,11 +552,8 @@ document.addEventListener('DOMContentLoaded', function() {
         rightProperty: reportInfo.properties.right || 'None'
       };
       const prompt = fillPromptTemplate(promptVariables);
-      console.log('Generated prompt:', prompt);
       
-      // Here you would send the prompt to your AI service
       analyzeBtn.textContent = 'Analyzing with AI...';
-      // TODO: Replace with actual AI service call
       const analysis = await doAIAnalysis(prompt, transformedData);
       
       // Display results
@@ -571,7 +568,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       `;
     } finally {
-      console.log('Analysis complete, resetting UI');
       loadingIndicator.style.display = 'none';
       analyzeBtn.disabled = false;
       analyzeBtn.textContent = 'Analyze Report';
@@ -584,7 +580,7 @@ document.addEventListener('DOMContentLoaded', function() {
     factSheets.forEach(sheet => {
       html += `
         <div class="fact-sheet">
-          <h3>${sheet.id}</h3>
+          <h3>${sheet.name || sheet.id}</h3>
           <p><strong>Why relevant:</strong> ${sheet.reason}</p>
         </div>
       `;
@@ -594,9 +590,242 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Do AI analysis 
-  function doAIAnalysis(prompt, transformedData) {
-    console.log('Prompt:', prompt);
+  async function doAIAnalysis(systemPrompt, transformedData) {
+    console.log('Starting AI analysis...');
+    console.log('System prompt:', systemPrompt);
+    
+    // Get current settings
+    const settings = await chrome.storage.sync.get([
+      'modelType',
+      'endpoint',
+      'apiKey',
+      'apiVersion',
+      'deploymentName'
+    ]);
+    console.log('Using AI settings:', {
+      modelType: settings.modelType,
+      endpoint: settings.endpoint,
+      apiVersion: settings.apiVersion,
+      deploymentName: settings.deploymentName,
+      // Not logging apiKey for security
+    });
 
+    if (!settings.modelType || !settings.apiKey || !settings.deploymentName) {
+      console.error('Missing required settings:', {
+        hasModelType: !!settings.modelType,
+        hasApiKey: !!settings.apiKey,
+        hasDeploymentName: !!settings.deploymentName
+      });
+      throw new Error('Please configure AI settings first');
+    }
+
+    // Prepare messages
+    const messages = [
+      {
+        role: 'system',
+        content: systemPrompt
+      },
+      {
+        role: 'user',
+        content: `INPUT:\n${JSON.stringify(transformedData, null, 2)}`
+      }
+    ];
+
+    let response;
+    
+    try {
+      switch (settings.modelType) {
+        case 'openai':
+          response = await callOpenAI(messages, settings);
+          break;
+        case 'azure':
+          response = await callAzureOpenAI(messages, settings);
+          break;
+        case 'genai':
+          response = await callGenAI(messages, settings);
+          break;
+        default:
+          throw new Error('Unsupported model type');
+      }
+      console.log('Raw AI response:', response);
+    } catch (error) {
+      console.error(`${settings.modelType} API call failed:`, error);
+      throw error;
+    }
+
+    // Parse and validate response
+    try {
+      console.log('Parsing AI response...');
+      const parsed = JSON.parse(response);
+
+      // Handle both direct arrays and objects with arrays
+      const result = Array.isArray(parsed) ? parsed : parsed.factSheets;
+      
+      if (!Array.isArray(result)) {
+        console.error('Response does not contain a valid array:', result);
+        throw new Error('Response is not in the expected format');
+      }
+
+      // Validate each item in the array
+      result.forEach((item, index) => {
+        if (!item.id || !item.reason) {
+          console.error(`Invalid item at index ${index}:`, item);
+          throw new Error('Invalid response format');
+        }
+      });
+
+      console.log('Parsed response:', parsed);
+      // Add names from transformed data
+      console.log('Adding names from transformed data...');
+      if (Array.isArray(transformedData)) {
+        // Function to find name in FactSheet
+        function findNameInFactSheet(factSheet) {
+          // Prioritize fullName > name > displayName
+          return factSheet.fullName || factSheet.name || factSheet.displayName;
+        }
+
+        // Function to find FactSheet by ID in transformed data
+        function findFactSheetById(id) {
+          for (const item of transformedData) {
+            if (item.FactSheet && item.FactSheet.id === id) {
+              return findNameInFactSheet(item.FactSheet);
+            }
+          }
+          return null;
+        }
+
+        // Add names to each result item
+        result.forEach(item => {
+          const name = findFactSheetById(item.id);
+          if (name) {
+            item.name = name;
+          } else {
+            console.warn(`No name found for ID: ${item.id}`);
+          }
+        });
+      }
+
+      console.log('Final result with names:', result);
+      return result;
+    } catch (error) {
+      console.error('Failed to parse AI response:', error);
+      console.error('Raw response that failed parsing:', response);
+      throw new Error('Invalid response from AI service');
+    }
+  }
+
+  async function callOpenAI(messages, settings) {
+    console.log('Calling OpenAI API...');
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${settings.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: settings.deploymentName,
+        messages: messages,
+        temperature: 0,
+        response_format: { type: "json_object" }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error('OpenAI request failed');
+    }
+
+    const data = await response.json();
+    console.log('OpenAI response:', data);
+    return data.choices[0].message.content;
+  }
+
+  async function callAzureOpenAI(messages, settings) {
+    console.log('Calling Azure OpenAI API...');
+    if (!settings.endpoint || !settings.apiVersion) {
+      console.error('Missing Azure settings:', {
+        hasEndpoint: !!settings.endpoint,
+        hasApiVersion: !!settings.apiVersion
+      });
+      throw new Error('Incomplete Azure OpenAI settings');
+    }
+
+    const response = await fetch(
+      `${settings.endpoint}/openai/deployments/${settings.deploymentName}/chat/completions?api-version=${settings.apiVersion}`,
+      {
+        method: 'POST',
+        headers: {
+          'api-key': settings.apiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messages: messages,
+          temperature: 0,
+          response_format: { type: "json_object" }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Azure OpenAI request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error('Azure OpenAI request failed');
+    }
+
+    const data = await response.json();
+    console.log('Azure OpenAI response:', data);
+    return data.choices[0].message.content;
+  }
+
+  async function callGenAI(messages, settings) {
+    console.log('Calling GenAI API...');
+    if (!settings.endpoint || !settings.apiVersion) {
+      console.error('Missing GenAI settings:', {
+        hasEndpoint: !!settings.endpoint,
+        hasApiVersion: !!settings.apiVersion
+      });
+      throw new Error('Incomplete GenAI settings');
+    }
+
+    const response = await fetch(
+      `${settings.endpoint}/api/v1/completions`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${settings.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          deployment_id: settings.deploymentName,
+          messages: messages,
+          temperature: 0,
+          response_format: { type: "json_object" }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('GenAI request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error('GenAI request failed');
+    }
+
+    const data = await response.json();
+    console.log('GenAI response:', data);
+    return data.choices[0].message.content;
   }
 
   // Test connection functionality
