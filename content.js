@@ -1,9 +1,13 @@
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'analyzeReport') {
-    // Get the current report content
-    const reportContent = extractReportContent();
-    sendResponse({ content: reportContent });
+  if (request.action === 'ping') {
+    sendResponse({ status: 'ok' });
+  } else if (request.action === 'analyzeReport') {
+    // Get the current report info from storage
+    chrome.storage.local.get('reportInfo', function(data) {
+      sendResponse({ reportInfo: data.reportInfo });
+    });
+    return true; // Required for async response
   } else if (request.action === 'checkReport') {
     checkForReport().then(reportInfo => {
       sendResponse(reportInfo);
@@ -69,30 +73,3 @@ new MutationObserver(() => {
     });
   }
 }).observe(document, { subtree: true, childList: true });
-
-function extractReportContent() {
-  // Extract relevant information from the LeanIX report
-  const reportData = {
-    title: document.title,
-    content: [],
-    metadata: {}
-  };
-
-  // Get report content (adjust selectors based on LeanIX's DOM structure)
-  const reportElements = document.querySelectorAll('.report-content, .fact-sheet-content');
-  reportElements.forEach(element => {
-    reportData.content.push(element.textContent);
-  });
-
-  // Get metadata if available
-  const metadataElements = document.querySelectorAll('.metadata-field');
-  metadataElements.forEach(element => {
-    const key = element.getAttribute('data-field-name');
-    const value = element.textContent;
-    if (key && value) {
-      reportData.metadata[key] = value;
-    }
-  });
-
-  return reportData;
-}

@@ -135,14 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
           updateReportStatus(null);
         }
       } else {
-        // If no stored info, check with content script
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'checkReport' }, function(response) {
-          if (response && response.hasReport) {
-            updateReportStatus(response.reportId);
-          } else {
-            updateReportStatus(null);
-          }
-        });
+        updateReportStatus(null);
       }
     });
   });
@@ -278,25 +271,172 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  // Function to check if a node has a name attribute
+  function getNodeName(node) {
+    return node.name || node.fullName || node.displayName;
+  }
+
+  // Function to resolve UUIDs
+  async function resolveUUIDs(reportId) {
+    console.log('Starting UUID resolution...');
+    
+    // Get all edge collections from storage
+    const data = await chrome.storage.local.get(null);
+    const info = data.reportInfo;
+    
+    if (!info || !info.mainFilter) {
+      throw new Error('No report info or main filter found');
+    }
+
+    // Get main filter edges
+    const mainFilterKey = `edges_${reportId}.${info.mainFilter}`;
+    const mainEdges = data[mainFilterKey] || [];
+    
+    // Find UUIDs that need resolution
+    const uuidsToResolve = new Map(); // UUID -> edge object that needs the name
+    const uuidPattern = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    
+    // Recursive function to find factSheet objects
+    function findFactSheets(obj) {
+      if (!obj) return;
+      
+      // If this is a factSheet object with an ID
+      if (obj.factSheet?.id) {
+        const factSheet = obj.factSheet;
+        // Only add to resolution if it has no name properties at this level
+        if (!factSheet.name && !factSheet.fullName && !factSheet.displayName) {
+          const id = factSheet.id;
+          if (uuidPattern.test(id)) {
+            uuidsToResolve.set(id, factSheet);
+          }
+        }
+      }
+      
+      // Check arrays (like edges arrays)
+      if (Array.isArray(obj)) {
+        obj.forEach(item => findFactSheets(item));
+        return;
+      }
+      
+      // Check objects (including node objects and relationship objects)
+      if (typeof obj === 'object') {
+        Object.values(obj).forEach(value => findFactSheets(value));
+      }
+    }
+
+    // Process all edges
+    mainEdges.forEach(edge => findFactSheets(edge));
+
+    const initialUUIDCount = uuidsToResolve.size;
+    console.log(`Found ${initialUUIDCount} UUIDs to resolve:`, Array.from(uuidsToResolve.keys()));
+
+    // If we have UUIDs to resolve, check more filters
+    let resolvedCount = 0;
+    const resolvedUUIDs = new Set(); // Track unique resolved UUIDs
+
+    if (uuidsToResolve.size > 0) {
+      // Look through more filters' edges for resolution
+      for (const filterType of info.moreFilters) {
+        const filterKey = `edges_${reportId}.${filterType}`;
+        const filterEdges = data[filterKey] || [];
+        
+        filterEdges.forEach(edge => {
+          if (edge.node?.id && uuidsToResolve.has(edge.node.id)) {
+            const name = getNodeName(edge.node);
+            if (name) {
+              // Find all matching factSheets in the main edges and update them
+              mainEdges.forEach(mainEdge => {
+                const updateFactSheets = (obj) => {
+                  if (obj?.factSheet?.id === edge.node.id) {
+                    // Copy the name attribute that was found
+                    if (edge.node.name) obj.factSheet.name = edge.node.name;
+                    if (edge.node.fullName) obj.factSheet.fullName = edge.node.fullName;
+                    if (edge.node.displayName) obj.factSheet.displayName = edge.node.displayName;
+                    // Only increment count if we haven't resolved this UUID before
+                    if (!resolvedUUIDs.has(edge.node.id)) {
+                      resolvedUUIDs.add(edge.node.id);
+                      resolvedCount++;
+                    }
+                  }
+                  // Recursively check nested edges
+                  if (obj?.edges) {
+                    obj.edges.forEach(e => updateFactSheets(e.node));
+                  }
+                  // Check other nested objects that might contain edges
+                  if (typeof obj === 'object') {
+                    Object.values(obj).forEach(value => {
+                      if (value && typeof value === 'object' && value.edges) {
+                        value.edges.forEach(e => updateFactSheets(e.node));
+                      }
+                    });
+                  }
+                };
+                
+                // Start recursive check from the main edge
+                updateFactSheets(mainEdge.node);
+              });
+              uuidsToResolve.delete(edge.node.id);
+            }
+          }
+        });
+        
+        if (uuidsToResolve.size === 0) break;
+      }
+    }
+
+    // Save the resolved edges to storage with _resolved suffix
+    const resolvedKey = `${mainFilterKey}_resolved`;
+    await chrome.storage.local.set({ [resolvedKey]: mainEdges });
+    
+    // Log the resolved edges
+    console.log('Resolved edges:', mainEdges);
+    
+    return {
+      total: mainEdges.length,
+      needsResolution: initialUUIDCount,
+      resolved: resolvedCount,
+      unresolved: uuidsToResolve.size
+    };
+  }
+
+  // Function to check if content script is ready
+  async function isContentScriptReady(tabId) {
+    try {
+      const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+      return response && response.status === 'ok';
+    } catch (error) {
+      console.error('Content script not ready:', error);
+      return false;
+    }
+  }
+
   analyzeBtn.addEventListener('click', async function() {
+    console.log('Analyze button clicked');
+    
     // Show loading state
     analyzeBtn.disabled = true;
+    analyzeBtn.textContent = 'Resolving UUIDs...';
     results.style.display = 'block';
     loadingIndicator.style.display = 'block';
     resultsContent.innerHTML = '';
 
     try {
-      // Get the current tab
-      const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+      console.log('Starting analysis with reportId:', currentReportId);
+      if (!currentReportId) {
+        throw new Error('No report ID found');
+      }
+
+      // Actually resolve UUIDs
+      console.log('Beginning UUID resolution...');
+      const resolution = await resolveUUIDs(currentReportId);
+      console.log(`UUID Resolution complete: ${resolution.total} total edges, ${resolution.needsResolution} needed resolution, ${resolution.resolved} resolved, ${resolution.unresolved} unresolved`);
       
-      // Send message to content script to get report content
-      const response = await chrome.tabs.sendMessage(tab.id, {action: 'analyzeReport'});
-      
-      // Here you would typically send the response.content to your AI service
-      // For now, we'll simulate an analysis response
-      await simulateAIAnalysis(response.content);
+      // Here you would typically send the reportInfo to your AI service
+      console.log('Simulating AI analysis...');
+      await simulateAIAnalysis();
       
       // Display results
+      console.log('Displaying results...');
       displayResults([
         {
           title: 'Application XYZ',
@@ -312,14 +452,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       ]);
     } catch (error) {
+      console.error('Error during analysis:', error);
+      console.error('Error stack:', error.stack);
       resultsContent.innerHTML = `
         <div class="fact-sheet">
-          <p class="error">Error analyzing the report. Please try again or make sure you're viewing a LeanIX report.</p>
+          <p class="error">Error analyzing the report: ${error.message}</p>
         </div>
       `;
     } finally {
+      console.log('Analysis complete, resetting UI');
       loadingIndicator.style.display = 'none';
       analyzeBtn.disabled = false;
+      analyzeBtn.textContent = 'Analyze Report';
     }
   });
 
