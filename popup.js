@@ -392,10 +392,13 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Resolved edges:', mainEdges);
     
     return {
-      total: mainEdges.length,
-      needsResolution: initialUUIDCount,
-      resolved: resolvedCount,
-      unresolved: uuidsToResolve.size
+      edges: mainEdges,
+      stats: {
+        total: mainEdges.length,
+        needsResolution: initialUUIDCount,
+        resolved: resolvedCount,
+        unresolved: uuidsToResolve.size
+      }
     };
   }
 
@@ -408,6 +411,102 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('Content script not ready:', error);
       return false;
     }
+  }
+
+  /**
+   * Transform and normalize the JSON structure from LeanIX GraphQL response.
+   * 
+   * This function performs several transformations on the input JSON:
+   * 1. Transforms edges content to FactSheets:
+   *    - Each edge's node content is transformed into a FactSheet entry
+   *    - The transformed nodes are collected into a list of FactSheets
+   * 
+   * 2. Renames fields for better readability:
+   *    - 'relToParent' becomes 'RelationToParent'
+   *    - 'relToChild' becomes 'RelationToChild'
+   *    - 'relXToY' patterns become 'RelationsToY' (e.g., relApplicationToBusinessCapability -> RelationsToBusinessCapability)
+   * 
+   * 3. Processes relations:
+   *    - Removes 'id' fields from relation nodes
+   *    - Transforms relation nodes into a standardized format
+   *    - Collects relations into a Relations array
+   * 
+   * 4. Recursively processes nested structures:
+   *    - Handles nested edges arrays
+   *    - Processes nested relation objects
+   *    - Maintains hierarchy while transforming
+   * 
+   * @param {Object|Array} data - The input data to transform. Can be an object or array.
+   * @returns {Object} The transformed data structure with standardized naming and format.
+   */
+  function transformJsonStructure(data) {
+    if (!data || typeof data !== 'object') {
+      return data;
+    }
+
+    // If it's an array, transform each item
+    if (Array.isArray(data)) {
+      return data.map(item => {
+        // If the item has a node property, transform it to FactSheet
+        if (item?.node) {
+          const transformedNode = transformJsonStructure(item.node);
+          return { FactSheet: transformedNode };
+        }
+        return transformJsonStructure(item);
+      });
+    }
+
+    const newData = {};
+    for (const [key, value] of Object.entries(data)) {
+      let newKey = key;
+      let newValue = value;
+
+      // Transform edges to FactSheets
+      if (key === 'edges' && Array.isArray(value)) {
+        const factsheets = value.map(edge => {
+          if (edge?.node) {
+            const transformedNode = transformJsonStructure(edge.node);
+            return { FactSheet: transformedNode };
+          }
+          return edge;
+        });
+        return { FactSheets: factsheets };
+      }
+
+      // Process relations
+      if (key.startsWith('rel') && value?.edges && Array.isArray(value.edges)) {
+        const relations = value.edges.map(edge => {
+          if (edge?.node) {
+            const relation = { ...edge.node };
+            if ('id' in relation) {
+              delete relation.id;
+            }
+            return { RelationTo: relation };
+          }
+          return edge;
+        });
+        newValue = { Relations: relations };
+      }
+
+      // Handle relXToY patterns
+      if (key.startsWith('rel')) {
+        if (key === 'relToParent') {
+          newKey = 'RelationToParent';
+        } else if (key === 'relToChild') {
+          newKey = 'RelationToChild';
+        } else if (key.includes('To')) {
+          const parts = key.split('To', 2);
+          if (parts.length > 1) {
+            newKey = 'RelationsTo' + parts[1];
+          }
+        }
+      }
+
+      // Recursively transform nested structures
+      newData[newKey] = transformJsonStructure(newValue);
+    }
+
+    return newData;
   }
 
   analyzeBtn.addEventListener('click', async function() {
@@ -429,9 +528,15 @@ document.addEventListener('DOMContentLoaded', function() {
       // Actually resolve UUIDs
       console.log('Beginning UUID resolution...');
       const resolution = await resolveUUIDs(currentReportId);
-      console.log(`UUID Resolution complete: ${resolution.total} total edges, ${resolution.needsResolution} needed resolution, ${resolution.resolved} resolved, ${resolution.unresolved} unresolved`);
+      console.log(`UUID Resolution complete: ${resolution.stats.total} total edges, ${resolution.stats.needsResolution} needed resolution, ${resolution.stats.resolved} resolved, ${resolution.stats.unresolved} unresolved`);
       
-      // Here you would typically send the reportInfo to your AI service
+      // Transform the resolved edges
+      analyzeBtn.textContent = 'Transforming data...';
+      const transformedData = transformJsonStructure(resolution.edges);
+      console.log('Transformed data:', transformedData);
+      
+      // Here you would typically send the transformed data to your AI service
+      analyzeBtn.textContent = 'Analyzing with AI...';
       console.log('Simulating AI analysis...');
       await simulateAIAnalysis();
       
