@@ -125,6 +125,21 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
+    // Test marking a fact sheet, keep for debugging
+    // chrome.tabs.sendMessage(tabs[0].id, {
+    //   action: 'markFactSheets',
+    //   factSheets: [{
+    //     id: "123",
+    //     name: "AC Management",
+    //     reason: "This application has critical technical debt issues and requires immediate attention for modernization."
+    //   },
+    //   {
+    //     id: "456",
+    //     name: "Microsoft Teams",
+    //     reason: "Nobody likes this application."
+    //   }]
+    // });
+
     // Check if we have stored report info
     chrome.storage.local.get('reportInfo', function(data) {
       if (data.reportInfo) {
@@ -587,6 +602,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     resultsContent.innerHTML = html;
+
+    // Send fact sheets to content script for marking in report
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      chrome.tabs.sendMessage(tabs[0].id, {
+        action: 'markFactSheets',
+        factSheets: factSheets
+      });
+    });
   }
 
   // Do AI analysis 
