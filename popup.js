@@ -243,6 +243,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
+  // Function to normalize endpoint URLs
+  function normalizeEndpoint(url) {
+    if (!url) return url;
+    url = url.trim();
+    return url.endsWith('/') ? url.slice(0, -1) : url;
+  }
+
   // Save settings
   saveSettingsBtn.addEventListener('click', () => {
     // Validate endpoint before saving
@@ -252,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const settings = {
       modelType: modelType.value,
-      endpoint: endpoint.value.trim(),
+      endpoint: normalizeEndpoint(endpoint.value),
       apiKey: apiKey.value,
       apiVersion: apiVersion.value,
       deploymentName: deploymentName.value
@@ -643,16 +650,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Prepare messages
-    const messages = [
-      {
-        role: 'system',
-        content: systemPrompt
-      },
-      {
-        role: 'user',
-        content: `INPUT:\n${JSON.stringify(transformedData, null, 2)}`
-      }
-    ];
+    const isO1Model = settings.deploymentName.toLowerCase().includes('o1');
+    const messages = isO1Model 
+      ? [
+          {
+            role: 'user',
+            content: `${systemPrompt}\n\nINPUT:\n${JSON.stringify(transformedData, null, 2)}`
+          }
+        ]
+      : [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: `INPUT:\n${JSON.stringify(transformedData, null, 2)}`
+          }
+        ];
 
     let response;
     
@@ -955,21 +970,43 @@ document.addEventListener('DOMContentLoaded', function() {
       throw new Error('Endpoint must start with http:// or https://');
     }
 
-    // Test Azure OpenAI connection
+    // Test Azure OpenAI connection with a simple completion request
     try {
-      const testEndpoint = `${endpoint.value}/openai/deployments/${deploymentName.value}?api-version=${apiVersion.value}`;
+      const normalizedEndpoint = normalizeEndpoint(endpoint.value);
+      const testEndpoint = `${normalizedEndpoint}/openai/deployments/${deploymentName.value}/chat/completions?api-version=${apiVersion.value}`;
       const response = await fetch(testEndpoint, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'api-key': apiKey.value,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: "Respond with 'OK' if you can read this message."
+            }
+          ]
+        })
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Azure OpenAI test failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
         throw new Error('Failed to connect to Azure OpenAI');
       }
+
+      const data = await response.json();
+      if (!data.choices?.[0]?.message?.content) {
+        throw new Error('Invalid response from Azure OpenAI');
+      }
+
     } catch (error) {
+      console.error('Azure connection test error:', error);
       throw new Error('Failed to connect to Azure OpenAI. Please check your settings.');
     }
   }
@@ -992,7 +1029,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Test GenAI Hub connection
     try {
-      const testEndpoint = `${endpoint.value}/api/v1/health`;
+      const normalizedEndpoint = normalizeEndpoint(endpoint.value);
+      const testEndpoint = `${normalizedEndpoint}/api/v1/health`;
       const response = await fetch(testEndpoint, {
         method: 'GET',
         headers: {
