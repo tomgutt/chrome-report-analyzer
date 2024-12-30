@@ -12,6 +12,7 @@ A Chrome extension that helps analyze LeanIX reports by detecting fact sheets an
 - Marks relevant fact sheets in the report with interactive indicators
 - Provides AI-powered analysis of the report data
 - Configurable to work with different AI providers (OpenAI, Azure OpenAI, GenAI)
+- Supports multiple output modes for different model types
 
 ## Installation
 
@@ -27,6 +28,7 @@ A Chrome extension that helps analyze LeanIX reports by detecting fact sheets an
 3. Configure your AI settings (first time only):
    - Select your AI provider (OpenAI, Azure OpenAI, or GenAI)
    - Enter your API credentials
+   - Choose appropriate output mode for your model
    - Test the connection
    - Save your settings
 4. Click "Analyze Report" to start the analysis
@@ -52,6 +54,11 @@ The extension supports three AI providers:
 - Deployment Name
 - API Key
 
+### Output Modes
+- JSON Output Mode (recommended for most models)
+- JSON Output Schema (for o1 2024-12-17+, gpt-4o-mini 2024-07-18+, gpt-4o 2024-08-06+)
+- Text Mode (for o1-preview and o1-mini)
+
 ## Features in Detail
 
 ### Report Detection
@@ -72,6 +79,7 @@ The extension supports three AI providers:
 - Transforms data into a standardized format
 - Generates insights based on report structure and content
 - Provides reasoning for each highlighted fact sheet
+- Supports different output modes for various model types
 
 ## Development
 
@@ -81,3 +89,4 @@ The extension consists of several key components:
 - `popup.html/js`: User interface and control logic
 - `content.js`: Page interaction and visual markers
 - `background.js`: Request interception and data processing
+- `prompt-template.js`: AI prompt templates and schema generation
