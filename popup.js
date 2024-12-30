@@ -1,4 +1,4 @@
-import { fillPromptTemplate } from './prompt-template.js';
+import { fillPromptTemplate, generateOutputSchema } from './prompt-template.js';
 
 document.addEventListener('DOMContentLoaded', function() {
   const analyzeBtn = document.getElementById('analyzeBtn');
@@ -594,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Get settings to check for o1 model
       const settings = await chrome.storage.sync.get(['modelType', 'deploymentName']);
-      const isO1Model = settings.modelType === 'azure' && settings.deploymentName.toLowerCase().includes('o1');
+      const isO1Model = settings.deploymentName.toLowerCase().includes('o1');
       
       analyzeBtn.textContent = 'Analyzing with AI...';
       if (isO1Model) {
@@ -652,6 +652,7 @@ document.addEventListener('DOMContentLoaded', function() {
   async function doAIAnalysis(systemPrompt, transformedData) {
     console.log('Starting AI analysis...');
     console.log('System prompt:', systemPrompt);
+    console.log('JSON Schema:', generateOutputSchema('Application'));
     
     // Get current settings
     const settings = await chrome.storage.sync.get([
@@ -785,12 +786,15 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Calling OpenAI API...');
     const requestBody = {
       model: settings.deploymentName,
-      messages: messages
+      messages: messages,
+      response_format: {
+        type: "json_schema",
+        json_schema: generateOutputSchema('Application')
+      }
     };
 
     if (!isO1Model) {
       requestBody.temperature = 0;
-      requestBody.response_format = { type: "json_object" };
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -828,12 +832,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const requestBody = {
-      messages: messages
+      messages: messages,
+      response_format: {
+        type: "json_schema",
+        json_schema: generateOutputSchema('Application')
+      }
     };
 
     if (!isO1Model) {
       requestBody.temperature = 0;
-      requestBody.response_format = { type: "json_object" };
     }
 
     const response = await fetch(
@@ -880,12 +887,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const requestBody = {
       deployment_id: settings.deploymentName,
-      messages: messages
+      messages: messages,
+      response_format: {
+        type: "json_schema",
+        json_schema: generateOutputSchema('Application')
+      }
     };
 
     if (!isO1Model) {
       requestBody.temperature = 0;
-      requestBody.response_format = { type: "json_object" };
     }
 
     const response = await fetch(

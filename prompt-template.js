@@ -9,6 +9,44 @@
  * - rightProperty: Right property setting
  * - factSheets: Transformed fact sheet data (INPUT data)
  */
+
+/**
+ * Generates the JSON schema for the expected output format
+ * @param {string} mainFilter - The type of fact sheet being analyzed
+ * @returns {Object} The JSON schema object
+ */
+function generateOutputSchema(mainFilter) {
+  return {
+    name: "report_analysis",
+    strict: true,
+    schema: {
+      type: "object",
+      required: ["factSheets"],
+      properties: {
+        factSheets: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["id", "reason"],
+            properties: {
+              id: {
+                type: "string",
+                description: `The id of the ${mainFilter}`
+              },
+              reason: {
+                type: "string",
+                description: "A short reason (1-2 sentences) why this is relevant to look at"
+              }
+            },
+            additionalProperties: false
+          }
+        }
+      },
+      additionalProperties: false
+    }
+  };
+}
+
 const promptTemplate = `
 INSTRUCTIONS:
     You are given a JSON as INPUT of a report in the context of Enterprise Architecture with LeanIX. 
@@ -21,10 +59,6 @@ REPORT SETTINGS:
     The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
 
 OUTPUT:
-    Give me a JSON with a list "factSheets". Each object should have the following properties:
-    - id: The id of the \${mainFilter}
-    - reason: A short reason (1-2 sentences) why you identified it as relevant to look at. 
-
     Don't list any other information from the INPUT.
     Sort the list so that the most problematic or relevant \${mainFilter} is at the top.
 `;
@@ -36,6 +70,10 @@ OUTPUT:
  */
 function fillPromptTemplate(variables) {
   let filledPrompt = promptTemplate;
+  
+  // Generate the schema with the current mainFilter
+  const schema = JSON.stringify(generateOutputSchema(variables.mainFilter), null, 2);
+  variables.schema = schema;
   
   // Replace each variable in the template
   Object.entries(variables).forEach(([key, value]) => {
@@ -50,4 +88,4 @@ function fillPromptTemplate(variables) {
   return filledPrompt;
 }
 
-export { promptTemplate, fillPromptTemplate }; 
+export { promptTemplate, fillPromptTemplate, generateOutputSchema }; 
