@@ -636,6 +636,13 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
       }
       
+      // Scroll to bottom of container
+      const container = document.querySelector('.container');
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      });
+      
       const analysis = await doAIAnalysis(prompt, transformedData);
       
       // Display results
@@ -683,7 +690,6 @@ document.addEventListener('DOMContentLoaded', function() {
   async function doAIAnalysis(systemPrompt, transformedData) {
     console.log('Starting AI analysis...');
     console.log('System prompt:', systemPrompt);
-    console.log('JSON Schema:', generateOutputSchema('Application'));
     
     // Get current settings
     const settings = await chrome.storage.sync.get([
@@ -831,9 +837,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (settings.useJsonSchema) {
+      const outputSchema = generateOutputSchema(settings.mainFilter);
+      console.log('Generated output schema:', outputSchema);
       requestBody.response_format = {
         type: "json_schema",
-        json_schema: generateOutputSchema(settings.mainFilter)
+        json_schema: outputSchema
       };
     } else if (settings.useJsonMode) {
       requestBody.response_format = { type: "json_object" };
@@ -882,9 +890,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (settings.useJsonSchema) {
+      const outputSchema = generateOutputSchema(settings.mainFilter);
+      console.log('Generated output schema:', outputSchema);
       requestBody.response_format = {
         type: "json_schema",
-        json_schema: generateOutputSchema(settings.mainFilter)
+        json_schema: outputSchema
       };
     } else if (settings.useJsonMode) {
       requestBody.response_format = { type: "json_object" };
@@ -942,9 +952,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (settings.useJsonSchema) {
+      const outputSchema = generateOutputSchema(settings.mainFilter);
+      console.log('Generated output schema:', outputSchema);
       requestBody.response_format = {
         type: "json_schema",
-        json_schema: generateOutputSchema(settings.mainFilter)
+        json_schema: outputSchema
       };
     } else if (settings.useJsonMode) {
       requestBody.response_format = { type: "json_object" };
