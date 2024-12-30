@@ -592,7 +592,19 @@ document.addEventListener('DOMContentLoaded', function() {
       };
       const prompt = fillPromptTemplate(promptVariables);
       
+      // Get settings to check for o1 model
+      const settings = await chrome.storage.sync.get(['modelType', 'deploymentName']);
+      const isO1Model = settings.modelType === 'azure' && settings.deploymentName.toLowerCase().includes('o1');
+      
       analyzeBtn.textContent = 'Analyzing with AI...';
+      if (isO1Model) {
+        resultsContent.innerHTML = `
+          <div class="fact-sheet">
+            <p><strong>Note:</strong> Using an o1 model which requires more time for detailed reasoning. Please be patient...</p>
+          </div>
+        `;
+      }
+      
       const analysis = await doAIAnalysis(prompt, transformedData);
       
       // Display results
@@ -603,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('Error stack:', error.stack);
       resultsContent.innerHTML = `
         <div class="fact-sheet">
-          <p class="error">Error analyzing the report: ${error.message}</p>
+          <p class="error"><strong>Error analyzing the report: </strong>${error.message}</p>
         </div>
       `;
     } finally {
@@ -691,13 +703,13 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       switch (settings.modelType) {
         case 'openai':
-          response = await callOpenAI(messages, settings);
+          response = await callOpenAI(messages, settings, isO1Model);
           break;
         case 'azure':
-          response = await callAzureOpenAI(messages, settings);
+          response = await callAzureOpenAI(messages, settings, isO1Model);
           break;
         case 'genai':
-          response = await callGenAI(messages, settings);
+          response = await callGenAI(messages, settings, isO1Model);
           break;
         default:
           throw new Error('Unsupported model type');
@@ -769,20 +781,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  async function callOpenAI(messages, settings) {
+  async function callOpenAI(messages, settings, isO1Model) {
     console.log('Calling OpenAI API...');
+    const requestBody = {
+      model: settings.deploymentName,
+      messages: messages
+    };
+
+    if (!isO1Model) {
+      requestBody.temperature = 0;
+      requestBody.response_format = { type: "json_object" };
+    }
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${settings.apiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        model: settings.deploymentName,
-        messages: messages,
-        temperature: 0,
-        response_format: { type: "json_object" }
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
@@ -800,7 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return data.choices[0].message.content;
   }
 
-  async function callAzureOpenAI(messages, settings) {
+  async function callAzureOpenAI(messages, settings, isO1Model) {
     console.log('Calling Azure OpenAI API...');
     if (!settings.endpoint || !settings.apiVersion) {
       console.error('Missing Azure settings:', {
@@ -808,6 +825,15 @@ document.addEventListener('DOMContentLoaded', function() {
         hasApiVersion: !!settings.apiVersion
       });
       throw new Error('Incomplete Azure OpenAI settings');
+    }
+
+    const requestBody = {
+      messages: messages
+    };
+
+    if (!isO1Model) {
+      requestBody.temperature = 0;
+      requestBody.response_format = { type: "json_object" };
     }
 
     const response = await fetch(
@@ -818,11 +844,7 @@ document.addEventListener('DOMContentLoaded', function() {
           'api-key': settings.apiKey,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          messages: messages,
-          temperature: 0,
-          response_format: { type: "json_object" }
-        })
+        body: JSON.stringify(requestBody)
       }
     );
 
@@ -833,6 +855,11 @@ document.addEventListener('DOMContentLoaded', function() {
         statusText: response.statusText,
         error: errorText
       });
+
+      if (response.status === 429) {
+        throw new Error('Token limit exceeded. Please request a quota increase for your Azure OpenAI deployment.');
+      }
+
       throw new Error('Azure OpenAI request failed');
     }
 
@@ -841,7 +868,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return data.choices[0].message.content;
   }
 
-  async function callGenAI(messages, settings) {
+  async function callGenAI(messages, settings, isO1Model) {
     console.log('Calling GenAI API...');
     if (!settings.endpoint || !settings.apiVersion) {
       console.error('Missing GenAI settings:', {
@@ -849,6 +876,16 @@ document.addEventListener('DOMContentLoaded', function() {
         hasApiVersion: !!settings.apiVersion
       });
       throw new Error('Incomplete GenAI settings');
+    }
+
+    const requestBody = {
+      deployment_id: settings.deploymentName,
+      messages: messages
+    };
+
+    if (!isO1Model) {
+      requestBody.temperature = 0;
+      requestBody.response_format = { type: "json_object" };
     }
 
     const response = await fetch(
@@ -859,12 +896,7 @@ document.addEventListener('DOMContentLoaded', function() {
           'Authorization': `Bearer ${settings.apiKey}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          deployment_id: settings.deploymentName,
-          messages: messages,
-          temperature: 0,
-          response_format: { type: "json_object" }
-        })
+        body: JSON.stringify(requestBody)
       }
     );
 
