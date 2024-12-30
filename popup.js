@@ -111,7 +111,16 @@ document.addEventListener('DOMContentLoaded', function() {
   // Listen for report detection messages from content script
   chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'reportDetected') {
-      updateReportStatus(message.reportId);
+      // Get current tab URL and verify it matches the report ID
+      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        const currentUrl = tabs[0].url;
+        if (currentUrl.includes(message.reportId)) {
+          updateReportStatus(message.reportId);
+        } else {
+          console.log('URL does not match report ID, not updating UI');
+          updateReportStatus(null);
+        }
+      });
     }
   });
 
