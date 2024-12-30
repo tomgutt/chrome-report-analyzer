@@ -81,6 +81,13 @@ The extension supports three AI providers:
 - Provides reasoning for each highlighted fact sheet
 - Supports different output modes for various model types
 
+## Current Limitations
+
+- Only works with custom Landscape Reports (predefined reports are not supported)
+- SAP GenAI Hub integration is in beta and not fully tested
+- Extension is not extensively tested for bugs
+- View and properties are not translated (technical values)
+
 ## Development
 
 The extension consists of several key components:
