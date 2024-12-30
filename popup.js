@@ -240,8 +240,16 @@ document.addEventListener('DOMContentLoaded', function() {
       // Add active class to clicked button and corresponding pane
       button.classList.add('active');
       document.getElementById(button.dataset.tab).classList.add('active');
+
+      // Show/hide test button based on active tab
+      const testButton = document.getElementById('testConnectionBtn');
+      testButton.style.display = button.dataset.tab === 'ai-model' ? 'block' : 'none';
     });
   });
+
+  // Initialize test button visibility based on default active tab
+  const testButton = document.getElementById('testConnectionBtn');
+  testButton.style.display = document.querySelector('.tab-button.active').dataset.tab === 'ai-model' ? 'block' : 'none';
 
   // Function to normalize endpoint URLs
   function normalizeEndpoint(url) {
