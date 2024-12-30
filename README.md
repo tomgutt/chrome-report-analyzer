@@ -1,35 +1,83 @@
-# AI Report Analyzer Chrome Extension
+# LeanIX Report Analyzer
 
-A Chrome extension that helps analyze reports and documents using AI technology.
+<div align="center"><img src="images/icon128.png" alt="LeanIX Report Analyzer Icon" width="128" height="128" align="center"></div><br>
+
+A Chrome extension that helps analyze LeanIX reports by detecting fact sheets and providing AI-powered insights.
 
 ## Features
 
-- Upload and analyze various document formats (.pdf, .doc, .docx, .txt)
-- Modern and user-friendly interface
-- Quick analysis results
+- Automatically detects when a LeanIX report is opened
+- Captures and processes GraphQL requests for fact sheet data
+- Resolves UUIDs to human-readable names across different filters
+- Marks relevant fact sheets in the report with interactive indicators
+- Provides AI-powered analysis of the report data
+- Configurable to work with different AI providers (OpenAI, Azure OpenAI, GenAI)
 
 ## Installation
 
-1. Clone or download this repository
+1. Clone this repository
 2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" in the top right corner
+3. Enable "Developer mode" in the top right
 4. Click "Load unpacked" and select the extension directory
 
 ## Usage
 
-1. Click the extension icon in your Chrome toolbar
-2. Click "Choose File" to select a document
-3. Click "Analyze Report" to process the document
-4. View the analysis results
+1. Open a LeanIX report in your browser
+2. Click the extension icon to open the popup
+3. Configure your AI settings (first time only):
+   - Select your AI provider (OpenAI, Azure OpenAI, or GenAI)
+   - Enter your API credentials
+   - Test the connection
+   - Save your settings
+4. Click "Analyze Report" to start the analysis
+5. View the results and hover over the markers (📌) in the report for detailed insights
+
+## Configuration
+
+The extension supports three AI providers:
+
+### OpenAI
+- Model Name (e.g., gpt-4)
+- API Key
+
+### Azure OpenAI
+- Endpoint URL
+- API Version
+- Deployment Name
+- API Key
+
+### GenAI
+- Endpoint URL
+- API Version
+- Deployment Name
+- API Key
+
+## Features in Detail
+
+### Report Detection
+- Automatically detects when a LeanIX report is opened
+- Monitors for URL changes to update report status
+
+### Data Processing
+- Intercepts GraphQL requests for fact sheet data
+- Merges multiple requests for comprehensive data collection
+- Resolves UUIDs to human-readable names using cross-referencing
+
+### Visual Indicators
+- Adds pulsing icons next to relevant fact sheets in the report
+- Shows detailed reasoning on hover
+- Smart positioning of tooltips to ensure visibility
+
+### AI Analysis
+- Transforms data into a standardized format
+- Generates insights based on report structure and content
+- Provides reasoning for each highlighted fact sheet
 
 ## Development
 
-To modify or enhance the extension:
+The extension consists of several key components:
 
-1. Edit the HTML/CSS/JS files as needed
-2. Reload the extension in Chrome to see changes
-3. The extension uses Manifest V3 and modern web technologies
-
-## License
-
-MIT License
+- `manifest.json`: Extension configuration
+- `popup.html/js`: User interface and control logic
+- `content.js`: Page interaction and visual markers
+- `background.js`: Request interception and data processing
