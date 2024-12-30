@@ -47,11 +47,12 @@ function generateOutputSchema(mainFilter) {
   };
 }
 
-const promptTemplate = `
+// When JSON Output Schema is used
+const promptTemplateJSONSchema = `
 INSTRUCTIONS:
     You are given a JSON as INPUT of a report in the context of Enterprise Architecture with LeanIX. 
     Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that should be looked at.
-    Concentrate on the REPORT SETTINGS. This is what the user wants to look on and concentrate on.
+    Concentrate only on the REPORT SETTINGS. This is what the user wants to look at and concentrate on.
     Don't change the name of any item on the INPUT.
 
 REPORT SETTINGS:
@@ -59,21 +60,68 @@ REPORT SETTINGS:
     The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
 
 OUTPUT:
+    Sort the list so that the most problematic or relevant \${mainFilter} is at the top.
+    Give me no more than 20 results.
+`;
+
+// When JSON Output Mode is used
+const promptTemplateNoSchema = `
+INSTRUCTIONS:
+    You are given a JSON as INPUT of a report in the context of Enterprise Architecture with LeanIX. 
+    Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that should be looked at.
+    Concentrate only on the REPORT SETTINGS. This is what the user wants to look at and concentrate on.
+    Don't change the name of any item on the INPUT.
+
+REPORT SETTINGS:
+    The report shows \${mainFilter}s clustered by the following filters: \${moreFilters}.
+    The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
+
+OUTPUT:
+    Give me a JSON with a list "factSheets". Each object should have the following properties:
+    - id: The id of the \${mainFilter}
+    - reason: A short reason (1-2 sentences) why you identified it as relevant to look at. 
+
     Don't list any other information from the INPUT.
     Sort the list so that the most problematic or relevant \${mainFilter} is at the top.
+`;
+
+// When Text Mode is used
+const promptTemplateTextMode = `
+INSTRUCTIONS:
+    You are given a JSON as INPUT of a report in the context of Enterprise Architecture with LeanIX. 
+    Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that should be looked at.
+    Concentrate only on the REPORT SETTINGS. This is what the user wants to look at and concentrate on.
+    Don't change the name of any item on the INPUT.
+
+REPORT SETTINGS:
+    The report shows \${mainFilter}s clustered by the following filters: \${moreFilters}.
+    The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
+
+OUTPUT:
+    Give me a JSON with a list "factSheets". Each object should have the following properties:
+    - id: The id of the \${mainFilter}
+    - reason: A short reason (1-2 sentences) why you identified it as relevant to look at. 
+
+    Don't list any other information from the INPUT.
+    Sort the list so that the most problematic or relevant \${mainFilter} is at the top.
+    Only respond with a JSON with no markdown or other text.
 `;
 
 /**
  * Fills the prompt template with the provided variables.
  * @param {Object} variables - Object containing values for template variables
+ * @param {Object} settings - Settings object containing mode flags
  * @returns {string} The filled prompt template
  */
-function fillPromptTemplate(variables) {
-  let filledPrompt = promptTemplate;
-  
-  // Generate the schema with the current mainFilter
-  const schema = JSON.stringify(generateOutputSchema(variables.mainFilter), null, 2);
-  variables.schema = schema;
+function fillPromptTemplate(variables, settings) {
+  let filledPrompt;
+  if (settings.useJsonSchema) {
+    filledPrompt = promptTemplateJSONSchema;
+  } else if (settings.useTextMode) {
+    filledPrompt = promptTemplateTextMode;
+  } else {
+    filledPrompt = promptTemplateNoSchema;
+  }
   
   // Replace each variable in the template
   Object.entries(variables).forEach(([key, value]) => {
@@ -88,4 +136,4 @@ function fillPromptTemplate(variables) {
   return filledPrompt;
 }
 
-export { promptTemplate, fillPromptTemplate, generateOutputSchema }; 
+export { promptTemplateJSONSchema, promptTemplateNoSchema, promptTemplateTextMode, fillPromptTemplate, generateOutputSchema }; 

@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const deploymentName = document.getElementById('deploymentName');
   const deploymentLabel = document.getElementById('deploymentLabel');
   const modelHelp = document.getElementById('modelHelp');
+  const useJsonMode = document.getElementById('useJsonMode');
+  const useJsonSchema = document.getElementById('useJsonSchema');
+  const useTextMode = document.getElementById('useTextMode');
 
   // Get parent form groups for conditional display
   const endpointGroup = endpoint.closest('.form-group');
@@ -193,19 +196,83 @@ document.addEventListener('DOMContentLoaded', function() {
 
   modelType.addEventListener('change', updateFormFields);
 
+  // Handle mutual exclusivity of output mode checkboxes
+  [useJsonMode, useJsonSchema, useTextMode].forEach(checkbox => {
+    checkbox.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        // Uncheck other checkboxes
+        [useJsonMode, useJsonSchema, useTextMode].forEach(otherCheckbox => {
+          if (otherCheckbox !== e.target) {
+            otherCheckbox.checked = false;
+          }
+        });
+      }
+    });
+  });
+
+  // Save settings
+  saveSettingsBtn.addEventListener('click', () => {
+    // Validate endpoint before saving
+    if (!validateEndpoint()) {
+      return; // Don't save if endpoint is invalid (except for OpenAI)
+    }
+
+    const settings = {
+      modelType: modelType.value,
+      endpoint: normalizeEndpoint(endpoint.value),
+      apiKey: apiKey.value,
+      apiVersion: apiVersion.value,
+      deploymentName: deploymentName.value,
+      useJsonMode: useJsonMode.checked,
+      useJsonSchema: useJsonSchema.checked,
+      useTextMode: useTextMode.checked
+    };
+
+    chrome.storage.sync.set(settings, function() {
+      // Disable all input fields and buttons
+      const inputs = settingsDialog.querySelectorAll('input, select, button');
+      inputs.forEach(input => input.disabled = true);
+
+      // Show success message
+      const successMessage = document.createElement('div');
+      successMessage.textContent = 'Settings saved successfully!';
+      successMessage.style.color = '#107e3e';
+      successMessage.style.textAlign = 'center';
+      successMessage.style.padding = '8px';
+      
+      const footer = document.querySelector('.dialog-footer');
+      footer.insertBefore(successMessage, saveSettingsBtn);
+
+      // Remove message and re-enable inputs after 2 seconds
+      setTimeout(() => {
+        successMessage.remove();
+        settingsDialog.style.display = 'none';
+        // Re-enable all inputs
+        inputs.forEach(input => input.disabled = false);
+      }, 2000);
+    });
+    console.log('Settings saved:', settings);
+  });
+
   // Load saved settings
   chrome.storage.sync.get([
     'modelType',
     'endpoint',
     'apiKey',
     'apiVersion',
-    'deploymentName'
+    'deploymentName',
+    'useJsonMode',
+    'useJsonSchema',
+    'useTextMode'
   ], function(data) {
     if (data.modelType) modelType.value = data.modelType;
     if (data.endpoint) endpoint.value = data.endpoint;
     if (data.apiKey) apiKey.value = data.apiKey;
     if (data.apiVersion) apiVersion.value = data.apiVersion;
     if (data.deploymentName) deploymentName.value = data.deploymentName;
+    if (data.useJsonMode !== undefined) useJsonMode.checked = data.useJsonMode;
+    if (data.useJsonSchema !== undefined) useJsonSchema.checked = data.useJsonSchema;
+    if (data.useTextMode !== undefined) useTextMode.checked = data.useTextMode;
     updateFormFields(); // Update field visibility based on loaded provider
   });
 
@@ -266,51 +333,6 @@ document.addEventListener('DOMContentLoaded', function() {
     url = url.trim();
     return url.endsWith('/') ? url.slice(0, -1) : url;
   }
-
-  // Save settings
-  saveSettingsBtn.addEventListener('click', () => {
-    // Validate endpoint before saving
-    if (modelType.value !== 'openai' && !validateEndpoint()) {
-      return; // Don't save if endpoint is invalid (except for OpenAI)
-    }
-
-    const settings = {
-      modelType: modelType.value,
-      endpoint: normalizeEndpoint(endpoint.value),
-      apiKey: apiKey.value,
-      apiVersion: apiVersion.value,
-      deploymentName: deploymentName.value
-    };
-
-    chrome.storage.sync.set(settings, function() {
-      // Show success message
-      const successMessage = document.createElement('div');
-      successMessage.textContent = 'Settings saved successfully!';
-      successMessage.style.color = '#107e3e';
-      successMessage.style.textAlign = 'center';
-      successMessage.style.padding = '8px';
-      
-      const footer = document.querySelector('.dialog-footer');
-      footer.insertBefore(successMessage, saveSettingsBtn);
-
-      // Remove message after 2 seconds
-      setTimeout(() => {
-        successMessage.remove();
-        settingsDialog.style.display = 'none';
-      }, 2000);
-    });
-  });
-
-  // Check if we're on a LeanIX page
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    const currentUrl = tabs[0].url;
-    if (!currentUrl.includes('leanix.net')) {
-      analyzeBtn.disabled = true;
-      resultsContent.innerHTML = '<p>Please open this extension while viewing a LeanIX report.</p>';
-      results.style.display = 'block';
-      return;
-    }
-  });
 
   // Function to check if a node has a name attribute
   function getNodeName(node) {
@@ -582,6 +604,19 @@ document.addEventListener('DOMContentLoaded', function() {
       const transformedData = transformJsonStructure(resolution.edges);
       console.log('Transformed data:', transformedData);
       
+      // Get settings first
+      const settings = await chrome.storage.sync.get([
+        'modelType',
+        'endpoint',
+        'apiKey',
+        'apiVersion',
+        'deploymentName',
+        'useJsonMode',
+        'useJsonSchema',
+        'useTextMode'
+      ]);
+      const isO1Model = settings.deploymentName.toLowerCase().includes('o1');
+      
       // Fill the prompt template with report data
       const promptVariables = {
         mainFilter: reportInfo.mainFilter,
@@ -590,17 +625,13 @@ document.addEventListener('DOMContentLoaded', function() {
         leftProperty: reportInfo.properties.left || 'None',
         rightProperty: reportInfo.properties.right || 'None'
       };
-      const prompt = fillPromptTemplate(promptVariables);
-      
-      // Get settings to check for o1 model
-      const settings = await chrome.storage.sync.get(['modelType', 'deploymentName']);
-      const isO1Model = settings.deploymentName.toLowerCase().includes('o1');
+      const prompt = fillPromptTemplate(promptVariables, settings);
       
       analyzeBtn.textContent = 'Analyzing with AI...';
       if (isO1Model) {
         resultsContent.innerHTML = `
           <div class="fact-sheet">
-            <p><strong>Note:</strong> Using an o1 model which requires more time for detailed reasoning. Please be patient...</p>
+            <p><strong>Note:</strong> Using an o1 model requires more time for detailed reasoning. Please be patient...</p>
           </div>
         `;
       }
@@ -660,13 +691,19 @@ document.addEventListener('DOMContentLoaded', function() {
       'endpoint',
       'apiKey',
       'apiVersion',
-      'deploymentName'
+      'deploymentName',
+      'useJsonMode',
+      'useJsonSchema',
+      'useTextMode'
     ]);
     console.log('Using AI settings:', {
       modelType: settings.modelType,
       endpoint: settings.endpoint,
       apiVersion: settings.apiVersion,
       deploymentName: settings.deploymentName,
+      useJsonMode: settings.useJsonMode,
+      useJsonSchema: settings.useJsonSchema,
+      useTextMode: settings.useTextMode
       // Not logging apiKey for security
     });
 
@@ -786,15 +823,20 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Calling OpenAI API...');
     const requestBody = {
       model: settings.deploymentName,
-      messages: messages,
-      response_format: {
-        type: "json_schema",
-        json_schema: generateOutputSchema('Application')
-      }
+      messages: messages
     };
 
     if (!isO1Model) {
       requestBody.temperature = 0;
+    }
+
+    if (settings.useJsonSchema) {
+      requestBody.response_format = {
+        type: "json_schema",
+        json_schema: generateOutputSchema(settings.mainFilter)
+      };
+    } else if (settings.useJsonMode) {
+      requestBody.response_format = { type: "json_object" };
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -832,15 +874,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const requestBody = {
-      messages: messages,
-      response_format: {
-        type: "json_schema",
-        json_schema: generateOutputSchema('Application')
-      }
+      messages: messages
     };
 
     if (!isO1Model) {
       requestBody.temperature = 0;
+    }
+
+    if (settings.useJsonSchema) {
+      requestBody.response_format = {
+        type: "json_schema",
+        json_schema: generateOutputSchema(settings.mainFilter)
+      };
+    } else if (settings.useJsonMode) {
+      requestBody.response_format = { type: "json_object" };
     }
 
     const response = await fetch(
@@ -887,15 +934,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const requestBody = {
       deployment_id: settings.deploymentName,
-      messages: messages,
-      response_format: {
-        type: "json_schema",
-        json_schema: generateOutputSchema('Application')
-      }
+      messages: messages
     };
 
     if (!isO1Model) {
       requestBody.temperature = 0;
+    }
+
+    if (settings.useJsonSchema) {
+      requestBody.response_format = {
+        type: "json_schema",
+        json_schema: generateOutputSchema(settings.mainFilter)
+      };
+    } else if (settings.useJsonMode) {
+      requestBody.response_format = { type: "json_object" };
     }
 
     const response = await fetch(

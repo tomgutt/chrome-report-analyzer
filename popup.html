@@ -116,6 +116,30 @@
               <input type="text" id="deploymentName" class="sap-input" placeholder="Enter deployment name">
               <div id="modelHelp" class="help-text"></div>
             </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="useJsonMode" class="sap-checkbox" name="outputMode">
+                Use JSON Output Mode
+              </label>
+              <div class="help-text">Recommended for most models</div>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="useJsonSchema" class="sap-checkbox" name="outputMode">
+                Use JSON Output Schema
+              </label>
+              <div class="help-text">Use for o1 (2024-12-17+), gpt-4o-mini (2024-07-18+), gpt-4o (2024-08-06+)</div>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="useTextMode" class="sap-checkbox" name="outputMode">
+                Use Text Mode
+              </label>
+              <div class="help-text">Use only for o1-preview and o1-mini</div>
+            </div>
           </div>
         </div>
       </div>

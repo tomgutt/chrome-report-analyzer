@@ -502,3 +502,19 @@ h1 {
   padding: 4px 0;
   text-align: center;
 }
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #32363a;
+  font-size: 14px;
+}
+
+.sap-checkbox {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+}
