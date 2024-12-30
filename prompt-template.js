@@ -98,13 +98,15 @@ REPORT SETTINGS:
     The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
 
 OUTPUT:
-    Give me a JSON with a list "factSheets". Each object should have the following properties:
-    - id: The id of the \${mainFilter}
-    - reason: A short reason (1-2 sentences) why you identified it as relevant to look at. 
-
+    Do NOT wrap your answer in any code blocks or markdown fences (no triple backticks).
+    Return ONLY valid JSON, with a top-level property "factSheets" that is an array.
+    Each object in "factSheets" must contain:
+        - id: The id of the \${mainFilter}
+        - reason: A short reason (1-2 sentences) why you identified it as relevant to look at.
     Don't list any other information from the INPUT.
     Sort the list so that the most problematic or relevant \${mainFilter} is at the top.
-    Only respond with a JSON with no markdown or other text.
+    Only respond with JSON and no additional text.
+    Give me no more than 20 results.
 `;
 
 /**
