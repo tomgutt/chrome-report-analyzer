@@ -615,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'useJsonSchema',
         'useTextMode'
       ]);
-      const isO1Model = settings.deploymentName.toLowerCase().includes('o1');
+      const isOModel = /^o\d+/i.test(settings.deploymentName);
       
       // Fill the prompt template with report data
       const promptVariables = {
@@ -628,10 +628,10 @@ document.addEventListener('DOMContentLoaded', function() {
       const prompt = fillPromptTemplate(promptVariables, settings);
       
       analyzeBtn.textContent = 'Analyzing with AI...';
-      if (isO1Model) {
+      if (isOModel) {
         resultsContent.innerHTML = `
           <div class="fact-sheet">
-            <p><strong>Note:</strong> Using an o1 model requires more time for detailed reasoning. Please be patient...</p>
+            <p><strong>Note:</strong> Using an O-series model requires more time for detailed reasoning. Please be patient...</p>
           </div>
         `;
       }
@@ -723,8 +723,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Prepare messages
-    const isO1Model = settings.deploymentName.toLowerCase().includes('o1');
-    const messages = isO1Model 
+    const isOModel = /^o\d+/i.test(settings.deploymentName);
+    const messages = isOModel 
       ? [
           {
             role: 'user',
@@ -747,13 +747,13 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       switch (settings.modelType) {
         case 'openai':
-          response = await callOpenAI(messages, settings, isO1Model);
+          response = await callOpenAI(messages, settings, isOModel);
           break;
         case 'azure':
-          response = await callAzureOpenAI(messages, settings, isO1Model);
+          response = await callAzureOpenAI(messages, settings, isOModel);
           break;
         case 'genai':
-          response = await callGenAI(messages, settings, isO1Model);
+          response = await callGenAI(messages, settings, isOModel);
           break;
         default:
           throw new Error('Unsupported model type');
@@ -825,14 +825,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  async function callOpenAI(messages, settings, isO1Model) {
+  async function callOpenAI(messages, settings, isOModel) {
     console.log('Calling OpenAI API...');
     const requestBody = {
       model: settings.deploymentName,
       messages: messages
     };
 
-    if (!isO1Model) {
+    if (!isOModel) {
       requestBody.temperature = 0;
     }
 
@@ -871,7 +871,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return data.choices[0].message.content;
   }
 
-  async function callAzureOpenAI(messages, settings, isO1Model) {
+  async function callAzureOpenAI(messages, settings, isOModel) {
     console.log('Calling Azure OpenAI API...');
     if (!settings.endpoint || !settings.apiVersion) {
       console.error('Missing Azure settings:', {
@@ -885,7 +885,7 @@ document.addEventListener('DOMContentLoaded', function() {
       messages: messages
     };
 
-    if (!isO1Model) {
+    if (!isOModel) {
       requestBody.temperature = 0;
     }
 
@@ -932,7 +932,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return data.choices[0].message.content;
   }
 
-  async function callGenAI(messages, settings, isO1Model) {
+  async function callGenAI(messages, settings, isOModel) {
     console.log('Calling GenAI API...');
     if (!settings.endpoint || !settings.apiVersion) {
       console.error('Missing GenAI settings:', {
@@ -947,7 +947,7 @@ document.addEventListener('DOMContentLoaded', function() {
       messages: messages
     };
 
-    if (!isO1Model) {
+    if (!isOModel) {
       requestBody.temperature = 0;
     }
 
