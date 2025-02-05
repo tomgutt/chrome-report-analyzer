@@ -59,6 +59,9 @@ REPORT SETTINGS:
     The report shows \${mainFilter}s clustered by the following filters: \${moreFilters}.
     The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
 
+FIELD INFORMATION:
+    \${fieldTranslations}
+
 OUTPUT:
     Sort the list so that the most problematic or relevant \${mainFilter} is at the top.
     Give me no more than 20 results.
@@ -75,6 +78,9 @@ INSTRUCTIONS:
 REPORT SETTINGS:
     The report shows \${mainFilter}s clustered by the following filters: \${moreFilters}.
     The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
+
+FIELD INFORMATION:
+    \${fieldTranslations}
 
 OUTPUT:
     Give me a JSON with a list "factSheets". Each object should have the following properties:
@@ -97,6 +103,9 @@ REPORT SETTINGS:
     The report shows \${mainFilter}s clustered by the following filters: \${moreFilters}.
     The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
 
+FIELD INFORMATION:
+    \${fieldTranslations}
+
 OUTPUT:
     Do NOT wrap your answer in any code blocks or markdown fences (no triple backticks).
     Return ONLY valid JSON, with a top-level property "factSheets" that is an array.
@@ -108,6 +117,36 @@ OUTPUT:
     Only respond with JSON and no additional text.
     Give me no more than 20 results.
 `;
+
+/**
+ * Formats field translations into a readable string for the prompt
+ * @param {Object} fieldTranslations - The field translations object
+ * @returns {string} Formatted string describing the fields and their values
+ */
+function formatFieldTranslations(fieldTranslations) {
+  if (!fieldTranslations || Object.keys(fieldTranslations).length === 0) return '';
+
+  let result = '';
+  
+  // Process each field
+  Object.entries(fieldTranslations).forEach(([fieldKey, fieldData]) => {
+    if (fieldData.fieldTranslation) {
+      result += `Field "${fieldKey}":\n`;
+      result += `Label: ${fieldData.fieldTranslation.label}\n`;
+      result += `Description: ${fieldData.fieldTranslation.helpText}\n\n`;
+    }
+
+    if (fieldData.valueTranslations && Object.keys(fieldData.valueTranslations).length > 0) {
+      result += `Possible values for "${fieldKey}":\n`;
+      Object.entries(fieldData.valueTranslations).forEach(([key, value]) => {
+        result += `- ${value.label}: ${value.helpText}\n`;
+      });
+      result += '\n';
+    }
+  });
+
+  return result;
+}
 
 /**
  * Fills the prompt template with the provided variables.
@@ -123,6 +162,13 @@ function fillPromptTemplate(variables, settings) {
     filledPrompt = promptTemplateTextMode;
   } else {
     filledPrompt = promptTemplateNoSchema;
+  }
+  
+  // Format field translations if they exist
+  if (variables.reportInfo?.fieldTranslations) {
+    variables.fieldTranslations = formatFieldTranslations(variables.reportInfo.fieldTranslations);
+  } else {
+    variables.fieldTranslations = '';
   }
   
   // Replace each variable in the template

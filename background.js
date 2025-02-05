@@ -215,6 +215,9 @@ chrome.webRequest.onSendHeaders.addListener(
     );
 
     if (authHeader) {
+      // Extract base URL from the details.url
+      const baseUrl = details.url.match(/(https:\/\/.*?\.leanix\.net)/)[1];
+      
       fetch(details.url, {
         method: 'GET',
         headers: {
@@ -240,103 +243,130 @@ chrome.webRequest.onSendHeaders.addListener(
               right: data.data.state?.customState?.properties?.right || ''
             }
           };
-          
-          // Store the report info
-          chrome.storage.local.set({ reportInfo }, () => {
-            // Notify any open popups about the new report
-            chrome.runtime.sendMessage({
-              action: 'reportDetected',
-              reportId: reportInfo.id
-            });
 
-            // Now process the GraphQL requests if we have any
-            if (requestData) {
-              console.log(`Found ${requestData.total} related GraphQL requests`);
-              
-              console.log('Filters found in report:');
-              console.log(`- Main filter: ${reportInfo.mainFilter}`);
-              console.log(`- More filters: ${reportInfo.moreFilters.join(', ') || 'none'}`);
-              
-              // Log requests by filter type
-              const mainFilterCount = requestData.byType.get(reportInfo.mainFilter) || 0;
-              console.log(`\nGraphQL requests by filter type:`);
-              console.log(`- Main filter (${reportInfo.mainFilter}): ${mainFilterCount} requests`);
-              
-              reportInfo.moreFilters.forEach(filter => {
-                const filterCount = requestData.byType.get(filter) || 0;
-                console.log(`- More filter (${filter}): ${filterCount} requests`);
-              });
+          // Fetch meta model for the main filter
+          if (reportInfo.mainFilter) {
+            fetchMetaModel(baseUrl, authHeader.value, reportInfo.mainFilter)
+              .then(metaModel => {
+                // Get all relevant fields from the report settings
+                const relevantFields = new Set([
+                  reportInfo.view,
+                  reportInfo.properties.left,
+                  reportInfo.properties.right
+                ].filter(field => field && field !== '')); // Remove empty/null values
 
-              // Re-fetch all stored requests
-              const authToken = authHeader.value;
-              let completedRequests = 0;
-              const totalRequests = [...requestData.byType.entries()].reduce((sum, [_, count]) => sum + count, 0);
-
-              [...requestData.byType.entries()].forEach(([type, count]) => {
-                for (let i = 0; i < count; i++) {
-                  const key = `request_${reportId}_${type}_${i}`;
-                  chrome.storage.local.get(key, (requestData) => {
-                    if (requestData[key]) {
-                      const { url, body } = requestData[key];
-                      console.log('Fetching GraphQL data from:', url);
-                      fetch(url, {
-                        method: 'POST',
-                        headers: {
-                          'Authorization': authToken,
-                          'Content-Type': 'application/json'
-                        },
-                        body: body
-                      })
-                      .then(response => response.json())
-                      .then(data => {
-                        if (data?.data?.current?.edges) {
-                          const collectionKey = `${reportId}.${type}`;
-                          
-                          // Get existing edges or initialize empty array
-                          const existingEdges = edgeCollections.get(collectionKey) || [];
-                          
-                          // Merge new edges with existing ones
-                          const mergedEdges = mergeEdges(existingEdges, data.data.current.edges);
-                          edgeCollections.set(collectionKey, mergedEdges);
-                          
-                          console.log(`Updated edges for ${collectionKey} (${mergedEdges.length} unique nodes)`);
-                          // console.log(mergedEdges); // keep for debugging
-
-                          // Store the merged edges in chrome.storage.local
-                          chrome.storage.local.set({
-                            [`edges_${collectionKey}`]: mergedEdges
-                          }, () => {
-                            console.log(`Saved edges for ${collectionKey} to storage`);
-                            completedRequests++;
-                            
-                            // Only clean up after all requests are processed
-                            if (completedRequests === totalRequests) {
-                              console.log('All GraphQL requests processed, cleaning up temporary storage');
-                              // debugStorage(); // keep for debugging
-                              cleanupTempStorage();
-                            }
-                          });
-                        }
-                      })
-                      .catch(error => {
-                        console.error('Error fetching GraphQL data:', error);
-                        completedRequests++;
-                        
-                        // Even if there's an error, we should clean up if this was the last request
-                        if (completedRequests === totalRequests) {
-                          console.log('All GraphQL requests processed (with some errors), cleaning up temporary storage');
-                          // debugStorage(); // keep for debugging
-                          cleanupTempStorage();
-                        }
-                      });
-                    }
-                  });
+                // Get translations for all relevant fields
+                const fieldTranslations = {};
+                for (const fieldKey of relevantFields) {
+                  const translation = getTranslationOfField(metaModel, reportInfo.mainFilter, fieldKey);
+                  if (translation) {
+                    fieldTranslations[fieldKey] = translation;
+                  }
                 }
+                
+                reportInfo.fieldTranslations = fieldTranslations;
+                
+                // Store the updated report info
+                chrome.storage.local.set({ reportInfo }, () => {
+                  // Notify any open popups about the new report
+                  chrome.runtime.sendMessage({
+                    action: 'reportDetected',
+                    reportId: reportInfo.id
+                  });
+
+                  // Now process the GraphQL requests if we have any
+                  if (requestData) {
+                    console.log(`Found ${requestData.total} related GraphQL requests`);
+                    
+                    console.log('Filters found in report:');
+                    console.log(`- Main filter: ${reportInfo.mainFilter}`);
+                    console.log(`- More filters: ${reportInfo.moreFilters.join(', ') || 'none'}`);
+                    
+                    // Log requests by filter type
+                    const mainFilterCount = requestData.byType.get(reportInfo.mainFilter) || 0;
+                    console.log(`\nGraphQL requests by filter type:`);
+                    console.log(`- Main filter (${reportInfo.mainFilter}): ${mainFilterCount} requests`);
+                    
+                    reportInfo.moreFilters.forEach(filter => {
+                      const filterCount = requestData.byType.get(filter) || 0;
+                      console.log(`- More filter (${filter}): ${filterCount} requests`);
+                    });
+
+                    // Re-fetch all stored requests
+                    const authToken = authHeader.value;
+                    let completedRequests = 0;
+                    const totalRequests = [...requestData.byType.entries()].reduce((sum, [_, count]) => sum + count, 0);
+
+                    [...requestData.byType.entries()].forEach(([type, count]) => {
+                      for (let i = 0; i < count; i++) {
+                        const key = `request_${reportId}_${type}_${i}`;
+                        chrome.storage.local.get(key, (requestData) => {
+                          if (requestData[key]) {
+                            const { url, body } = requestData[key];
+                            console.log('Fetching GraphQL data from:', url);
+                            fetch(url, {
+                              method: 'POST',
+                              headers: {
+                                'Authorization': authToken,
+                                'Content-Type': 'application/json'
+                              },
+                              body: body
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                              if (data?.data?.current?.edges) {
+                                const collectionKey = `${reportId}.${type}`;
+                                
+                                // Get existing edges or initialize empty array
+                                const existingEdges = edgeCollections.get(collectionKey) || [];
+                                
+                                // Merge new edges with existing ones
+                                const mergedEdges = mergeEdges(existingEdges, data.data.current.edges);
+                                edgeCollections.set(collectionKey, mergedEdges);
+                                
+                                console.log(`Updated edges for ${collectionKey} (${mergedEdges.length} unique nodes)`);
+                                // console.log(mergedEdges); // keep for debugging
+
+                                // Store the merged edges in chrome.storage.local
+                                chrome.storage.local.set({
+                                  [`edges_${collectionKey}`]: mergedEdges
+                                }, () => {
+                                  console.log(`Saved edges for ${collectionKey} to storage`);
+                                  completedRequests++;
+                                  
+                                  // Only clean up after all requests are processed
+                                  if (completedRequests === totalRequests) {
+                                    console.log('All GraphQL requests processed, cleaning up temporary storage');
+                                    // debugStorage(); // keep for debugging
+                                    cleanupTempStorage();
+                                  }
+                                });
+                              }
+                            })
+                            .catch(error => {
+                              console.error('Error fetching GraphQL data:', error);
+                              completedRequests++;
+                              
+                              // Even if there's an error, we should clean up if this was the last request
+                              if (completedRequests === totalRequests) {
+                                console.log('All GraphQL requests processed (with some errors), cleaning up temporary storage');
+                                // debugStorage(); // keep for debugging
+                                cleanupTempStorage();
+                              }
+                            });
+                          }
+                        });
+                      }
+                    });
+                  } else {
+                    console.log('No related GraphQL requests found');
+                  }
+                });
+              })
+              .catch(error => {
+                console.error('Error processing meta model:', error);
               });
-            } else {
-              console.log('No related GraphQL requests found');
-            }
-          });
+          }
         }
       })
       .catch(error => {
@@ -375,4 +405,85 @@ chrome.webRequest.onCompleted.addListener(
     urls: ["*://*.leanix.net/services/pathfinder/v1/bookmarks/*"],
     types: ["xmlhttprequest"]
   }
-); 
+);
+
+// Add the new fetchMetaModel function before the last event listener
+function fetchMetaModel(baseUrl, authToken, factSheetType) {
+  const metaModelUrl = `${baseUrl}/services/pathfinder/v1/models/metaModel/${factSheetType}`;
+  console.log(`Fetching meta model for ${factSheetType} from:`, metaModelUrl);
+  
+  return fetch(metaModelUrl, {
+    method: 'GET',
+    headers: {
+      'Authorization': authToken
+    }
+  })
+  .then(response => response.json())
+  .catch(error => {
+    console.error(`Error fetching meta model for ${factSheetType}:`, error);
+    throw error;
+  });
+}
+
+function getTranslationOfField(metaModel, factSheetType, fieldKey) {
+  const factSheetTypeData = metaModel.data.factSheetTypes.find(type => type.key === factSheetType);
+  
+  if (!factSheetTypeData) {
+    console.log(`No factSheet type found for ${factSheetType}`);
+    return null;
+  }
+
+  // Search through all sections and their fields
+  for (const section of factSheetTypeData.sections) {
+    // If the section has fields, search through them
+    if (section.fields) {
+      const field = section.fields.find(field => field.key === fieldKey);
+      if (field) {
+        console.log(`Found field data for ${fieldKey}:`, field);
+        return field;
+      }
+    }
+    
+    // If the section has subsections, search through their fields
+    if (section.subsections) {
+      for (const subsection of section.subsections) {
+        if (subsection.fields) {
+          const field = subsection.fields.find(field => field.key === fieldKey);
+          if (field) {
+            console.log(`Found field data for ${fieldKey} in subsection:`, field);
+
+            fieldTranslation = field.translations.en
+            if (!fieldTranslation) {
+              console.log(`No en fieldTranslation found for ${fieldKey} in subsection:`, field);
+              return null;
+            }
+
+            if (field.values.length > 0) {
+              // Create translations for each value
+              valueTranslations = field.values.reduce((acc, value) => {
+                // Get the English translation for this value
+                const translation = value.translations.en;
+                if (translation) {
+                  acc[value.key] = translation;
+                }
+                return acc;
+              }, {});
+            } else {
+              valueTranslations = []
+            }
+            
+            translationsObject = {
+              "fieldTranslation": fieldTranslation,
+              "valueTranslations": valueTranslations
+            }
+
+            return translationsObject
+          }
+        }
+      }
+    }
+  }
+  
+  console.log(`No field found with key ${fieldKey}`);
+  return null;
+} 

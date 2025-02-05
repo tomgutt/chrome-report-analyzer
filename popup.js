@@ -623,7 +623,8 @@ document.addEventListener('DOMContentLoaded', function() {
         moreFilters: reportInfo.moreFilters.join(', '),
         reportView: reportInfo.view,
         leftProperty: reportInfo.properties.left || 'None',
-        rightProperty: reportInfo.properties.right || 'None'
+        rightProperty: reportInfo.properties.right || 'None',
+        reportInfo: reportInfo  // Add the entire reportInfo object
       };
       const prompt = fillPromptTemplate(promptVariables, settings);
       
