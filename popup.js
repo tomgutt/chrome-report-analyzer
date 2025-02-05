@@ -45,6 +45,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const rightProperty = hasReportText.querySelector('.right-property');
   let currentReportId = null;
 
+  // User prompt input
+  const userPromptInput = document.getElementById('userPromptInput');
+  const userPromptContainer = document.querySelector('.user-prompt-container');
+
   // Function to update the UI based on report status
   function updateReportStatus(reportId) {
     currentReportId = reportId;
@@ -91,10 +95,11 @@ document.addEventListener('DOMContentLoaded', function() {
           leftProperty.textContent = info.properties.left || 'None';
           rightProperty.textContent = info.properties.right || 'None';
 
-          // Show the report info
+          // Show the report info and enable UI elements
           noReportText.style.display = 'none';
           hasReportText.style.display = 'block';
           analyzeBtn.disabled = false;
+          userPromptContainer.style.display = 'block';  // Show the user prompt container
         }
       });
     } else {
@@ -108,6 +113,8 @@ document.addEventListener('DOMContentLoaded', function() {
       leftProperty.textContent = '';
       rightProperty.textContent = '';
       analyzeBtn.disabled = true;
+      userPromptContainer.style.display = 'none';  // Hide the user prompt container
+      userPromptInput.value = '';  // Clear the input when hiding
     }
   }
 
@@ -604,7 +611,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const transformedData = transformJsonStructure(resolution.edges);
       console.log('Transformed data:', transformedData);
       
-      // Get settings first
+      // Get settings
       const settings = await chrome.storage.sync.get([
         'modelType',
         'endpoint',
@@ -617,14 +624,18 @@ document.addEventListener('DOMContentLoaded', function() {
       ]);
       const isOModel = /^o\d+/i.test(settings.deploymentName);
       
-      // Fill the prompt template with report data
+      // Read the user-provided prompt (if any)
+      const userPromptText = userPromptInput.value.trim();
+
+      // Fill the prompt template – note the extra "userPrompt" variable added!
       const promptVariables = {
         mainFilter: reportInfo.mainFilter,
         moreFilters: reportInfo.moreFilters.join(', '),
         reportView: reportInfo.view,
         leftProperty: reportInfo.properties.left || 'None',
         rightProperty: reportInfo.properties.right || 'None',
-        reportInfo: reportInfo  // Add the entire reportInfo object
+        reportInfo: reportInfo,  // The complete report info
+        userPrompt: userPromptText // Additional instructions from the user (optional)
       };
       const prompt = fillPromptTemplate(promptVariables, settings);
       

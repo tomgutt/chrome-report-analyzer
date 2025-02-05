@@ -48,12 +48,13 @@ function generateOutputSchema(mainFilter) {
 }
 
 // When JSON Output Schema is used
-const promptTemplateJSONSchema = `
+const promptTemplateJSONSchema = (variables) => `
 INSTRUCTIONS:
     You are given a JSON as INPUT of a report in the context of Enterprise Architecture with LeanIX. 
     Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that should be looked at.
     The report is configured to focus on specific fields that are important for the analysis, they are mentioned in the REPORT SETTINGS.
     Pay special attention to these fields and their values when determining which \${mainFilter}s are most relevant by using the FIELD DEFINITIONS AND VALUES.
+    ${variables.userPrompt ? 'Also consider the ADDITIONAL USER INSTRUCTIONS below when analyzing.' : ''}
     Don't change the name of any item on the INPUT.
 
 REPORT SETTINGS:
@@ -62,6 +63,9 @@ REPORT SETTINGS:
 
 FIELD DEFINITIONS AND VALUES:
     \${fieldTranslations}
+
+${variables.userPrompt ? `ADDITIONAL USER INSTRUCTIONS:
+    \${userPrompt}` : ''}
 
 OUTPUT:
     Sort the list so that the most problematic or relevant \${mainFilter} is at the top.
@@ -69,12 +73,13 @@ OUTPUT:
 `;
 
 // When JSON Output Mode is used
-const promptTemplateNoSchema = `
+const promptTemplateNoSchema = (variables) => `
 INSTRUCTIONS:
     You are given a JSON as INPUT of a report in the context of Enterprise Architecture with LeanIX. 
     Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that should be looked at.
     The report is configured to focus on specific fields that are important for the analysis, they are mentioned in the REPORT SETTINGS.
     Pay special attention to these fields and their values when determining which \${mainFilter}s are most relevant by using the FIELD DEFINITIONS AND VALUES.
+    ${variables.userPrompt ? 'Also consider the ADDITIONAL USER INSTRUCTIONS below when analyzing.' : ''}
     Don't change the name of any item on the INPUT.
 
 REPORT SETTINGS:
@@ -83,6 +88,9 @@ REPORT SETTINGS:
 
 FIELD DEFINITIONS AND VALUES:
     \${fieldTranslations}
+
+${variables.userPrompt ? `ADDITIONAL USER INSTRUCTIONS:
+    \${userPrompt}` : ''}
 
 OUTPUT:
     Give me a JSON with a list "factSheets". Each object should have the following properties:
@@ -91,15 +99,18 @@ OUTPUT:
 
     Don't list any other information from the INPUT.
     Sort the list so that the most problematic or relevant \${mainFilter} is at the top.
+    Only respond with JSON and no additional text.
+    Give me no more than 20 results.
 `;
 
 // When Text Mode is used
-const promptTemplateTextMode = `
+const promptTemplateTextMode = (variables) => `
 INSTRUCTIONS:
     You are given a JSON as INPUT of a report in the context of Enterprise Architecture with LeanIX. 
     Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that should be looked at.
     The report is configured to focus on specific fields that are important for the analysis, they are mentioned in the REPORT SETTINGS.
     Pay special attention to these fields and their values when determining which \${mainFilter}s are most relevant by using the FIELD DEFINITIONS AND VALUES.
+    ${variables.userPrompt ? 'Also consider the ADDITIONAL USER INSTRUCTIONS below when analyzing.' : ''}
     Don't change the name of any item on the INPUT.
 
 REPORT SETTINGS:
@@ -108,6 +119,9 @@ REPORT SETTINGS:
 
 FIELD DEFINITIONS AND VALUES:
     \${fieldTranslations}
+
+${variables.userPrompt ? `ADDITIONAL USER INSTRUCTIONS:
+    \${userPrompt}` : ''}
 
 OUTPUT:
     Do NOT wrap your answer in any code blocks or markdown fences (no triple backticks).
@@ -162,11 +176,11 @@ function formatFieldTranslations(fieldTranslations) {
 function fillPromptTemplate(variables, settings) {
   let filledPrompt;
   if (settings.useJsonSchema) {
-    filledPrompt = promptTemplateJSONSchema;
+    filledPrompt = promptTemplateJSONSchema(variables);
   } else if (settings.useTextMode) {
-    filledPrompt = promptTemplateTextMode;
+    filledPrompt = promptTemplateTextMode(variables);
   } else {
-    filledPrompt = promptTemplateNoSchema;
+    filledPrompt = promptTemplateNoSchema(variables);
   }
   
   // Format field translations if they exist

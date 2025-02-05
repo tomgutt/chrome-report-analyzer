@@ -520,3 +520,39 @@ h1 {
   margin: 0;
   cursor: pointer;
 }
+
+.user-prompt-container {
+  display: none;  /* Hidden by default */
+  margin-bottom: 16px;
+}
+
+.user-prompt-container label {
+  display: block;
+  margin-bottom: 8px;
+  color: #32363a;
+  font-size: 14px;
+  font-family: '72', sans-serif;
+}
+
+.user-prompt-container textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-family: '72', sans-serif;
+  font-size: 14px;
+  color: #32363a;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.user-prompt-container textarea:focus {
+  border-color: #0070f2;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 112, 242, 0.2);
+}
+
+.user-prompt-container textarea::placeholder {
+  color: #6a6d70;
+}
