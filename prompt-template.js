@@ -52,14 +52,15 @@ const promptTemplateJSONSchema = `
 INSTRUCTIONS:
     You are given a JSON as INPUT of a report in the context of Enterprise Architecture with LeanIX. 
     Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that should be looked at.
-    Concentrate only on the REPORT SETTINGS. This is what the user wants to look at and concentrate on.
+    The report is configured to focus on specific fields that are important for the analysis, they are mentioned in the REPORT SETTINGS.
+    Pay special attention to these fields and their values when determining which \${mainFilter}s are most relevant by using the FIELD DEFINITIONS AND VALUES.
     Don't change the name of any item on the INPUT.
 
 REPORT SETTINGS:
     The report shows \${mainFilter}s clustered by the following filters: \${moreFilters}.
     The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
 
-FIELD INFORMATION:
+FIELD DEFINITIONS AND VALUES:
     \${fieldTranslations}
 
 OUTPUT:
@@ -72,14 +73,15 @@ const promptTemplateNoSchema = `
 INSTRUCTIONS:
     You are given a JSON as INPUT of a report in the context of Enterprise Architecture with LeanIX. 
     Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that should be looked at.
-    Concentrate only on the REPORT SETTINGS. This is what the user wants to look at and concentrate on.
+    The report is configured to focus on specific fields that are important for the analysis, they are mentioned in the REPORT SETTINGS.
+    Pay special attention to these fields and their values when determining which \${mainFilter}s are most relevant by using the FIELD DEFINITIONS AND VALUES.
     Don't change the name of any item on the INPUT.
 
 REPORT SETTINGS:
     The report shows \${mainFilter}s clustered by the following filters: \${moreFilters}.
     The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
 
-FIELD INFORMATION:
+FIELD DEFINITIONS AND VALUES:
     \${fieldTranslations}
 
 OUTPUT:
@@ -96,14 +98,15 @@ const promptTemplateTextMode = `
 INSTRUCTIONS:
     You are given a JSON as INPUT of a report in the context of Enterprise Architecture with LeanIX. 
     Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that should be looked at.
-    Concentrate only on the REPORT SETTINGS. This is what the user wants to look at and concentrate on.
+    The report is configured to focus on specific fields that are important for the analysis, they are mentioned in the REPORT SETTINGS.
+    Pay special attention to these fields and their values when determining which \${mainFilter}s are most relevant by using the FIELD DEFINITIONS AND VALUES.
     Don't change the name of any item on the INPUT.
 
 REPORT SETTINGS:
     The report shows \${mainFilter}s clustered by the following filters: \${moreFilters}.
     The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
 
-FIELD INFORMATION:
+FIELD DEFINITIONS AND VALUES:
     \${fieldTranslations}
 
 OUTPUT:
@@ -132,14 +135,16 @@ function formatFieldTranslations(fieldTranslations) {
   Object.entries(fieldTranslations).forEach(([fieldKey, fieldData]) => {
     if (fieldData.fieldTranslation) {
       result += `Field "${fieldKey}":\n`;
-      result += `Label: ${fieldData.fieldTranslation.label}\n`;
-      result += `Description: ${fieldData.fieldTranslation.helpText}\n\n`;
+      result += `    Label: ${fieldData.fieldTranslation.label}\n`;
+      result += `    Description: ${fieldData.fieldTranslation.helpText}\n\n`;
     }
 
     if (fieldData.valueTranslations && Object.keys(fieldData.valueTranslations).length > 0) {
-      result += `Possible values for "${fieldKey}":\n`;
+      result += `    Possible values:\n`;
       Object.entries(fieldData.valueTranslations).forEach(([key, value]) => {
-        result += `- ${value.label}: ${value.helpText}\n`;
+        result += `        "${key}":\n`;
+        result += `            Label: ${value.label}\n`;
+        result += `            Description: ${value.helpText}\n`;
       });
       result += '\n';
     }
