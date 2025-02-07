@@ -234,6 +234,7 @@ chrome.webRequest.onSendHeaders.addListener(
           const reportInfo = {
             id: data.data.id,
             name: data.data.name,
+            userId: data.data.userId,
             view: data.data.state?.customState?.view || '',
             filters: allFilters,
             mainFilter: allFilters[0] || '',
@@ -243,6 +244,22 @@ chrome.webRequest.onSendHeaders.addListener(
               right: data.data.state?.customState?.properties?.right || ''
             }
           };
+
+          const isPredefinedReport = reportInfo.userId === '00000000-0000-4000-0000-000000000001'; // Check if this is a predefined report
+          if (isPredefinedReport) {
+            console.log('Background worker detected a predefined report');
+            // Store the updated report info
+            chrome.storage.local.set({ reportInfo }, () => {
+              // Notify any open popups about the new report
+              chrome.runtime.sendMessage({
+                action: 'reportDetected',
+                reportId: reportInfo.id,
+                isPredefinedReport: isPredefinedReport
+              });
+
+              return;
+            });
+          }
 
           // Fetch meta model for the main filter
           if (reportInfo.mainFilter) {
@@ -271,7 +288,8 @@ chrome.webRequest.onSendHeaders.addListener(
                   // Notify any open popups about the new report
                   chrome.runtime.sendMessage({
                     action: 'reportDetected',
-                    reportId: reportInfo.id
+                    reportId: reportInfo.id,
+                    isPredefinedReport: isPredefinedReport
                   });
 
                   // Now process the GraphQL requests if we have any

@@ -148,7 +148,13 @@ document.addEventListener('DOMContentLoaded', function() {
       chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         const currentUrl = tabs[0].url;
         if (currentUrl.includes(message.reportId)) {
-          updateReportStatus(message.reportId);
+          if (message.isPredefinedReport) {
+            console.log('This is a predefined report');
+            noReportText.textContent = 'Predefined reports are not supported. Please create a copy by pressing \'Save as\' and open that report.';
+            return;
+          } else {
+            updateReportStatus(message.reportId);
+          }
         } else {
           console.log('URL does not match report ID, not updating UI');
           updateReportStatus(null);
@@ -160,11 +166,25 @@ document.addEventListener('DOMContentLoaded', function() {
   // Check initial report status when popup opens
   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
     const currentUrl = tabs[0].url;
-    if (!currentUrl.includes('leanix.net')) {
-      analyzeBtn.disabled = true;
-      resultsContent.innerHTML = '<p>Please open this extension while viewing a LeanIX report.</p>';
-      results.style.display = 'block';
+    const reportUrlPattern = /[^/]+\.leanix\.net\/[^/]+\/reports\//;
+    const landscapeUrlPattern = /[^/]+\.leanix\.net\/[^/]+\/reports\/landscape-app\/[^/]+/;
+    const reportsOverviewUrlPattern = /[^/]+\.leanix\.net\/[^/]+\/reports\/overview\/[^/]+/;
+
+    const isReportUrl = reportUrlPattern.test(currentUrl);
+    const isLandscapeUrl = landscapeUrlPattern.test(currentUrl);
+    const isReportsOverviewUrl = reportsOverviewUrlPattern.test(currentUrl);
+
+    if (!isReportUrl) {
+      noReportText.textContent = 'Please open this extension while viewing a LeanIX report.';
       return;
+    } else {
+      if (isLandscapeUrl) {
+        noReportText.textContent = 'Please wait...';
+      } else if (!isLandscapeUrl && !isReportsOverviewUrl) {
+        noReportText.textContent = 'Currently only landscape reports are supported.';
+      } else {
+        noReportText.textContent = 'No report detected. Please open a report first.';
+      }
     }
 
     // Check if we have stored report info and cached analysis
@@ -177,12 +197,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentUrl.includes(localData.reportInfo.id)) {
           const reportId = localData.reportInfo.id;
           const cachedAnalysis = syncData[`analysis_${reportId}`];
-          if (cachedAnalysis) { // This is called when the report is detected and the popup is opened after
+
+          if (localData.reportInfo.userId === '00000000-0000-4000-0000-000000000001') {
+            console.log('This is a predefined report');
+            noReportText.textContent = 'Predefined reports are not supported. Please create a copy by pressing \'Save as\' and open that report.';
+            return;
+          }
+          else if (cachedAnalysis) { // This is called when the report is detected and the popup is opened after
             console.log('Found cached analysis on popup load:', cachedAnalysis);
             analyzeBtn.textContent = 'Re-Analyze Report';
             displayResults(cachedAnalysis);
+            updateReportStatus(reportId);
+          } else {
+            updateReportStatus(reportId);
           }
-          updateReportStatus(reportId);
         } else {
           // Clear the stored info if it doesn't match current URL
           chrome.storage.local.remove('reportInfo');
