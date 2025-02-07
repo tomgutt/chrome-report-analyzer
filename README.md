@@ -16,6 +16,20 @@ A Chrome extension that helps analyze LeanIX reports by detecting fact sheets an
 - Supports multiple output modes for different model types
 - Allows additional user instructions for customized analysis
 
+## Supported Reports
+
+The extension currently supports:
+- Landscape Reports
+
+The extension does not support:
+- Predefined reports (those that come with LeanIX by default)
+- Other report types (Matrix, etc.)
+
+For predefined reports, you can create your own copy by:
+1. Opening a predefined report
+2. Clicking the "Save as" button
+3. Opening your newly created copy
+
 ## Installation
 
 1. Clone this repository
