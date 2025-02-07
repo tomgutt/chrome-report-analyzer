@@ -6,6 +6,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const loadingIndicator = document.querySelector('.loading-indicator');
   const resultsContent = document.querySelector('.results-content');
 
+  // Initialize results container - hide by default
+  results.style.display = 'none';
+  loadingIndicator.style.display = 'none';
+  resultsContent.innerHTML = '';
+
   // Settings elements
   const settingsBtn = document.getElementById('settingsBtn');
   const settingsDialog = document.getElementById('settingsDialog');
@@ -53,10 +58,13 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateReportStatus(reportId) {
     currentReportId = reportId;
     if (reportId) {
-      // Get all storage data to properly count edges
-      chrome.storage.local.get(null, function(data) {
-        if (data.reportInfo) {
-          const info = data.reportInfo;
+      // Get all storage data to properly count edges and check for cached analysis
+      Promise.all([
+        new Promise(resolve => chrome.storage.local.get(null, resolve)),
+        new Promise(resolve => chrome.storage.sync.get(`analysis_${reportId}`, resolve))
+      ]).then(([localData, syncData]) => {
+        if (localData.reportInfo) {
+          const info = localData.reportInfo;
           
           // Update basic info
           reportIdSpan.textContent = info.id;
@@ -65,10 +73,10 @@ document.addEventListener('DOMContentLoaded', function() {
           
           // Get edge counts for each filter type
           const edgeCounts = {};
-          Object.keys(data).forEach(key => {
+          Object.keys(localData).forEach(key => {
             if (key.startsWith(`edges_${reportId}.`)) {
               const type = key.split('.')[1];
-              edgeCounts[type] = data[key].length;
+              edgeCounts[type] = localData[key].length;
             }
           });
           
@@ -100,6 +108,19 @@ document.addEventListener('DOMContentLoaded', function() {
           hasReportText.style.display = 'block';
           analyzeBtn.disabled = false;
           userPromptContainer.style.display = 'block';  // Show the user prompt container
+
+          // This is called when the report is detected but the popup was already open
+          // Check for cached analysis results from sync storage
+          const cachedAnalysis = syncData[`analysis_${reportId}`];
+          if (cachedAnalysis) {
+            console.log('Found cached analysis results:', cachedAnalysis);
+            analyzeBtn.textContent = 'Re-Analyze Report';
+            displayResults(cachedAnalysis);
+          } else {
+            console.log('No cached analysis found for report:', reportId);
+            analyzeBtn.textContent = 'Analyze Report';
+            resultsContent.innerHTML = '';
+          }
         }
       });
     } else {
@@ -115,6 +136,8 @@ document.addEventListener('DOMContentLoaded', function() {
       analyzeBtn.disabled = true;
       userPromptContainer.style.display = 'none';  // Hide the user prompt container
       userPromptInput.value = '';  // Clear the input when hiding
+      analyzeBtn.textContent = 'Analyze Report';
+      resultsContent.innerHTML = '';
     }
   }
 
@@ -144,27 +167,22 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    // Test marking a fact sheet, keep for debugging
-    // chrome.tabs.sendMessage(tabs[0].id, {
-    //   action: 'markFactSheets',
-    //   factSheets: [{
-    //     id: "123",
-    //     name: "AC Management",
-    //     reason: "This application has critical technical debt issues and requires immediate attention for modernization."
-    //   },
-    //   {
-    //     id: "456",
-    //     name: "Microsoft Teams",
-    //     reason: "Nobody likes this application."
-    //   }]
-    // });
-
-    // Check if we have stored report info
-    chrome.storage.local.get('reportInfo', function(data) {
-      if (data.reportInfo) {
+    // Check if we have stored report info and cached analysis
+    Promise.all([
+      new Promise(resolve => chrome.storage.local.get('reportInfo', resolve)),
+      new Promise(resolve => chrome.storage.sync.get(null, resolve))
+    ]).then(([localData, syncData]) => {
+      if (localData.reportInfo) {
         // If we have stored info, verify the ID is in the current URL
-        if (currentUrl.includes(data.reportInfo.id)) {
-          updateReportStatus(data.reportInfo.id);
+        if (currentUrl.includes(localData.reportInfo.id)) {
+          const reportId = localData.reportInfo.id;
+          const cachedAnalysis = syncData[`analysis_${reportId}`];
+          if (cachedAnalysis) { // This is called when the report is detected and the popup is opened after
+            console.log('Found cached analysis on popup load:', cachedAnalysis);
+            analyzeBtn.textContent = 'Re-Analyze Report';
+            displayResults(cachedAnalysis);
+          }
+          updateReportStatus(reportId);
         } else {
           // Clear the stored info if it doesn't match current URL
           chrome.storage.local.remove('reportInfo');
@@ -585,7 +603,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show loading state
     analyzeBtn.disabled = true;
     analyzeBtn.textContent = 'Resolving UUIDs...';
-    results.style.display = 'block';
     loadingIndicator.style.display = 'block';
     resultsContent.innerHTML = '';
 
@@ -656,6 +673,13 @@ document.addEventListener('DOMContentLoaded', function() {
       });
       
       const analysis = await doAIAnalysis(prompt, transformedData);
+
+      // Cache the analysis results in sync storage
+      chrome.storage.sync.set({
+        [`analysis_${currentReportId}`]: analysis
+      }, function() {
+        console.log('Analysis results cached for report:', currentReportId);
+      });
       
       // Display results
       console.log('Displaying results...');
@@ -676,6 +700,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   function displayResults(factSheets) {
+    console.log('Displaying results of ' + factSheets.length + ' fact sheets');
+    
+    // Show results container and ensure loading indicator is hidden
+    results.style.display = 'block';
+    loadingIndicator.style.display = 'none';
+    
     let html = '<h3>Relevant Fact Sheets</h3>';
     
     factSheets.forEach(sheet => {

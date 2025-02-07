@@ -40,15 +40,21 @@ async function checkForReport() {
     return { hasReport: false, reportId: null };
   }
 
-  // Check storage for report info
-  let reportInfo;
+  // Check storage for report info and cached analysis
+  let reportInfo, cachedAnalysis;
   try {
-    const storage = await chrome.storage.local.get('reportInfo');
+    const storage = await chrome.storage.local.get(['reportInfo']);
     reportInfo = storage.reportInfo;
+    
+    if (reportInfo) {
+      const analysisStorage = await chrome.storage.sync.get(`analysis_${reportInfo.id}`);
+      cachedAnalysis = analysisStorage[`analysis_${reportInfo.id}`];
+    }
   } catch (error) {
-    console.error('Error getting report info:', error);
+    console.error('Error getting report info or analysis:', error);
     debugStorage();
     reportInfo = null;
+    cachedAnalysis = null;
   }
 
   // Check if the report ID is in the current URL
@@ -56,16 +62,23 @@ async function checkForReport() {
   const urlMatch = reportInfo && currentUrl.includes(reportInfo.id);
 
   if (reportInfo && urlMatch) {
+    // If we have cached analysis, mark the fact sheets
+    if (cachedAnalysis) {
+      console.log('Found cached analysis, marking fact sheets:', cachedAnalysis);
+      markFactSheetsInReport(cachedAnalysis);
+    }
+
     return {
       hasReport: true,
-      reportId: reportInfo.id
+      reportId: reportInfo.id,
+      hasAnalysis: !!cachedAnalysis
     };
   }
 
   // If conditions aren't met, clear the stored report info
   if (reportInfo && !urlMatch) {
     try {
-      await chrome.storage.local.remove('reportInfo');
+      await chrome.storage.local.remove(['reportInfo']);
     } catch (error) {
       console.error('Error removing report info:', error);
     }
@@ -73,7 +86,8 @@ async function checkForReport() {
 
   return {
     hasReport: false,
-    reportId: null
+    reportId: null,
+    hasAnalysis: false
   };
 }
 
@@ -83,7 +97,8 @@ checkForReport().then(reportInfo => {
     try {
       chrome.runtime.sendMessage({
         action: 'reportDetected',
-        reportId: reportInfo.reportId
+        reportId: reportInfo.reportId,
+        hasAnalysis: reportInfo.hasAnalysis
       });
     } catch (error) {
       console.error('Error sending report detection message:', error);
@@ -110,7 +125,8 @@ const observer = new MutationObserver(() => {
         try {
           chrome.runtime.sendMessage({
             action: 'reportDetected',
-            reportId: reportInfo.reportId
+            reportId: reportInfo.reportId,
+            hasAnalysis: reportInfo.hasAnalysis
           });
         } catch (error) {
           console.error('Error sending report detection message:', error);
