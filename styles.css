@@ -27,7 +27,7 @@ body {
 .container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   height: auto;
   min-height: 100px;
   max-height: none;
@@ -244,7 +244,7 @@ h1 {
 .info-text {
   color: #32363a;
   text-align: left;
-  margin: 0 0 16px 0;
+  margin: 0 0 8px 0;
 }
 
 .analyze-button {
@@ -425,7 +425,6 @@ h1 {
 }
 
 .report-status {
-  margin-top: 16px;
   font-size: 13px;
 }
 
@@ -447,7 +446,7 @@ h1 {
 
 .report-details-panel h3 {
   margin: 0;
-  padding: 12px 16px;
+  padding: 8px 16px;
   font-size: 14px;
   font-weight: bold;
   color: #32363a;
@@ -521,7 +520,7 @@ h1 {
   gap: 8px;
   cursor: pointer;
   color: #32363a;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .sap-checkbox {
@@ -533,15 +532,14 @@ h1 {
 
 .user-prompt-container {
   display: none;  /* Hidden by default */
-  margin-bottom: 16px;
 }
 
 .user-prompt-container label {
   display: block;
-  margin-bottom: 8px;
   color: #32363a;
-  font-size: 14px;
+  font-size: 13px;
   font-family: '72', sans-serif;
+  margin: 0 0 8px 0;
 }
 
 .user-prompt-container textarea {
@@ -551,7 +549,7 @@ h1 {
   border: 1px solid #d9d9d9;
   border-radius: 4px;
   font-family: '72', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   color: #32363a;
   resize: vertical;
   box-sizing: border-box;
