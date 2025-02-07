@@ -11,8 +11,10 @@ A Chrome extension that helps analyze LeanIX reports by detecting fact sheets an
 - Resolves UUIDs to human-readable names across different filters
 - Marks relevant fact sheets in the report with interactive indicators
 - Provides AI-powered analysis of the report data
+- Caches analysis results for quick access across sessions and devices
 - Configurable to work with different AI providers (OpenAI, Azure OpenAI, GenAI)
 - Supports multiple output modes for different model types
+- Allows additional user instructions for customized analysis
 
 ## Installation
 
@@ -32,7 +34,8 @@ A Chrome extension that helps analyze LeanIX reports by detecting fact sheets an
    - Test the connection
    - Save your settings
 4. Click "Analyze Report" to start the analysis
-5. View the results and hover over the markers (📌) in the report for detailed insights
+5. View the results and hover over the markers in the report for detailed insights
+6. Previously analyzed reports will show cached results automatically
 
 ## Configuration
 
@@ -56,7 +59,7 @@ The extension supports three AI providers:
 
 ### Output Modes
 - JSON Output Mode (recommended for most models)
-- JSON Output Schema (for o1 2024-12-17+, gpt-4o-mini 2024-07-18+, gpt-4o 2024-08-06+)
+- JSON Output Schema (for o3-mini 2025-01-31+, o1 2024-12-17+, gpt-4o-mini 2024-07-18+, gpt-4o 2024-08-06+)
 - Text Mode (for o1-preview and o1-mini)
 
 ## Features in Detail
@@ -64,6 +67,7 @@ The extension supports three AI providers:
 ### Report Detection
 - Automatically detects when a LeanIX report is opened
 - Monitors for URL changes to update report status
+- Restores cached analysis results when returning to previously analyzed reports
 
 ### Data Processing
 - Intercepts GraphQL requests for fact sheet data
@@ -80,6 +84,13 @@ The extension supports three AI providers:
 - Generates insights based on report structure and content
 - Provides reasoning for each highlighted fact sheet
 - Supports different output modes for various model types
+- Allows custom analysis instructions through optional user input
+
+### Result Caching
+- Automatically saves analysis results
+- Syncs results across devices using Chrome sync storage
+- Shows cached results immediately when returning to a report
+- Allows re-analysis of reports when needed
 
 ## Current Limitations
 
@@ -97,3 +108,4 @@ The extension consists of several key components:
 - `content.js`: Page interaction and visual markers
 - `background.js`: Request interception and data processing
 - `prompt-template.js`: AI prompt templates and schema generation
+- `styles.css`: UI styling with SAP Fiori design system
