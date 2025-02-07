@@ -28,9 +28,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  height: 100%;
-  max-height: 500px;
-  overflow-y: auto;
+  height: auto;
+  min-height: 100px;
+  max-height: none;
+  overflow-y: visible;
 }
 
 .header {
@@ -273,6 +274,9 @@ h1 {
   padding: 15px;
   min-height: 100px;
   display: none;
+  height: auto;
+  overflow: visible;
+  margin-bottom: 20px;
 }
 
 .loading-indicator {
@@ -297,6 +301,8 @@ h1 {
 
 .results-content {
   font-size: 14px;
+  height: auto;
+  overflow: visible;
 }
 
 .fact-sheet {
@@ -305,6 +311,10 @@ h1 {
   padding: 12px;
   margin-bottom: 12px;
   border: 1px solid #e5e5e5;
+}
+
+.fact-sheet:last-child {
+  margin-bottom: 0;
 }
 
 .fact-sheet h3 {
