@@ -1,8 +1,12 @@
-# LeanIX Report Analyzer
+# AI Report Analyzer for LeanIX
 
-<div align="center"><img src="images/icon128.png" alt="LeanIX Report Analyzer Icon" width="128" height="128" align="center"></div><br>
+<div align="center"><img src="images/icon128.png" alt="AI Report Analyzer for LeanIX Icon" width="128" height="128" align="center"></div><br>
 
-A Chrome extension that helps analyze LeanIX reports by detecting fact sheets and providing AI-powered insights.
+A Chrome extension that helps to analyze LeanIX reports by detecting relevant fact sheets and providing AI-powered insights.
+
+## Disclaimer
+
+This is an unofficial extension for analyzing SAP LeanIX reports. It is not affiliated with, officially connected to, or endorsed by LeanIX GmbH or SAP SE. All product names, logos, and brands are property of their respective owners. This extension is an independent, open-source tool created to help SAP LeanIX users analyze their reports more effectively.
 
 ## Features
 
