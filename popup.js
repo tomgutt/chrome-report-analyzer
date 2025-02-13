@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // User prompt input
   const userPromptInput = document.getElementById('userPromptInput');
   const userPromptContainer = document.querySelector('.user-prompt-container');
+  const maxResultsContainer = document.querySelector('.max-results-container');
 
   // Function to update the UI based on report status
   function updateReportStatus(reportId) {
@@ -108,6 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
           hasReportText.style.display = 'block';
           analyzeBtn.disabled = false;
           userPromptContainer.style.display = 'block';  // Show the user prompt container
+          maxResultsContainer.style.display = 'block';  // Show the max results container
 
           // This is called when the report is detected but the popup was already open
           // Check for cached analysis results from sync storage
@@ -135,6 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
       rightProperty.textContent = '';
       analyzeBtn.disabled = true;
       userPromptContainer.style.display = 'none';  // Hide the user prompt container
+      maxResultsContainer.style.display = 'none';  // Hide the max results container
       userPromptInput.value = '';  // Clear the input when hiding
       analyzeBtn.textContent = 'Analyze Report';
       resultsContent.innerHTML = '';
