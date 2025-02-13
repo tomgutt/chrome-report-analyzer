@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "AI Report Analyzer",
+  "name": "AI Report Analyzer for LeanIX",
   "version": "1.0",
   "description": "An AI-powered tool to analyze LeanIX reports and suggest relevant fact sheets",
   "permissions": [
