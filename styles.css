@@ -446,12 +446,10 @@ h1 {
 
 .report-details-panel h3 {
   margin: 0;
-  padding: 8px 16px;
   font-size: 14px;
   font-weight: bold;
   color: #32363a;
   background: #f5f6f7;
-  border-bottom: 1px solid #e5e5e5;
   border-radius: 4px 4px 0 0;
 }
 
@@ -563,4 +561,135 @@ h1 {
 
 .user-prompt-container textarea::placeholder {
   color: #6a6d70;
+}
+
+.report-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f5f6f7;
+  border-bottom: 1px solid #e5e5e5;
+  border-radius: 4px 4px 0 0;
+}
+
+.report-details-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: bold;
+  color: #32363a;
+}
+
+.settings-toggle {
+  position: relative;
+}
+
+.include-settings-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #32363a;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.include-settings-label:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.include-settings-label:hover::after {
+  content: "Toggle if the AI should use and concentrate on the report settings. If not, the AI will only use the report data and your custom prompt.";
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  background: #354a5f;
+  color: white;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: normal;
+  max-width: 250px;
+  line-height: 1.4;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.include-settings-label:hover::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 2px);
+  right: 16px;
+  border: 6px solid transparent;
+  border-top-color: #354a5f;
+  z-index: 1000;
+}
+
+.include-settings-label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #0070f2;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 16px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #d9d9d9;
+  transition: .2s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .2s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #0070f2;
+}
+
+input:checked + .slider:before {
+  transform: translateX(16px);
+}
+
+.toggleable-setting {
+  position: relative;
+  transition: opacity 0.2s;
+}
+
+.toggleable-setting.excluded {
+  opacity: 0.5;
+}
+
+.toggleable-setting.excluded:hover {
+  opacity: 0.8;
 }
