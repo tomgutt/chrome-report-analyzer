@@ -51,18 +51,22 @@ function generateOutputSchema(mainFilter) {
 const promptTemplateJSONSchema = (variables) => `
 INSTRUCTIONS:
     You are given a JSON as INPUT of a report in the context of Enterprise Architecture with LeanIX. 
-    Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that should be looked at.
+    Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that a user should be looking at.
+${variables.includeSettings ? `
     The report is configured to focus on specific fields that are important for the analysis, they are mentioned in the REPORT SETTINGS.
-    Pay special attention to these fields and their values when determining which \${mainFilter}s are most relevant by using the FIELD DEFINITIONS AND VALUES.
+    Pay special attention to these fields and their values when determining which \${mainFilter}s are most relevant by using the FIELD DEFINITIONS AND VALUES${variables.userPrompt ? ' if the ADDITIONAL USER INSTRUCTIONS don\'t specify otherwise' : ''}.` : `
+    Since no field definitions are provided, base your analysis ONLY on the displayName and description of each item.
+    DO NOT try to interpret technical fields as their meaning is not defined.
+    Analyze the data based on general best practices${variables.userPrompt ? ' and the ADDITIONAL USER INSTRUCTIONS' : ''}.`}
     ${variables.userPrompt ? 'Also consider the ADDITIONAL USER INSTRUCTIONS below when analyzing.' : ''}
     Don't change the name of any item on the INPUT.
 
-REPORT SETTINGS:
+${variables.includeSettings ? `REPORT SETTINGS:
     The report shows \${mainFilter}s clustered by the following filters: \${moreFilters}.
     The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
 
 FIELD DEFINITIONS AND VALUES:
-    \${fieldTranslations}
+    \${fieldTranslations}` : ''}
 
 ${variables.userPrompt ? `ADDITIONAL USER INSTRUCTIONS:
     \${userPrompt}` : ''}
@@ -76,18 +80,22 @@ OUTPUT:
 const promptTemplateNoSchema = (variables) => `
 INSTRUCTIONS:
     You are given a JSON as INPUT of a report in the context of Enterprise Architecture with LeanIX. 
-    Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that should be looked at.
+    Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that a user should be looking at.
+${variables.includeSettings ? `
     The report is configured to focus on specific fields that are important for the analysis, they are mentioned in the REPORT SETTINGS.
-    Pay special attention to these fields and their values when determining which \${mainFilter}s are most relevant by using the FIELD DEFINITIONS AND VALUES.
+    Pay special attention to these fields and their values when determining which \${mainFilter}s are most relevant by using the FIELD DEFINITIONS AND VALUES${variables.userPrompt ? ' if the ADDITIONAL USER INSTRUCTIONS don\'t specify otherwise' : ''}.` : `
+    Since no field definitions are provided, base your analysis ONLY on the displayName and description of each item.
+    DO NOT try to interpret technical fields as their meaning is not defined.
+    Analyze the data based on general best practices${variables.userPrompt ? ' and the ADDITIONAL USER INSTRUCTIONS' : ''}.`}
     ${variables.userPrompt ? 'Also consider the ADDITIONAL USER INSTRUCTIONS below when analyzing.' : ''}
     Don't change the name of any item on the INPUT.
 
-REPORT SETTINGS:
+${variables.includeSettings ? `REPORT SETTINGS:
     The report shows \${mainFilter}s clustered by the following filters: \${moreFilters}.
     The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
 
 FIELD DEFINITIONS AND VALUES:
-    \${fieldTranslations}
+    \${fieldTranslations}` : ''}
 
 ${variables.userPrompt ? `ADDITIONAL USER INSTRUCTIONS:
     \${userPrompt}` : ''}
@@ -107,18 +115,22 @@ OUTPUT:
 const promptTemplateTextMode = (variables) => `
 INSTRUCTIONS:
     You are given a JSON as INPUT of a report in the context of Enterprise Architecture with LeanIX. 
-    Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that should be looked at.
+    Your task is to analyze it and find the top most problematic or relevant \${mainFilter}s that a user should be looking at.
+${variables.includeSettings ? `
     The report is configured to focus on specific fields that are important for the analysis, they are mentioned in the REPORT SETTINGS.
-    Pay special attention to these fields and their values when determining which \${mainFilter}s are most relevant by using the FIELD DEFINITIONS AND VALUES.
+    Pay special attention to these fields and their values when determining which \${mainFilter}s are most relevant by using the FIELD DEFINITIONS AND VALUES${variables.userPrompt ? ' if the ADDITIONAL USER INSTRUCTIONS don\'t specify otherwise' : ''}.` : `
+    Since no field definitions are provided, base your analysis ONLY on the displayName and description of each item.
+    DO NOT try to interpret technical fields as their meaning is not defined.
+    Analyze the data based on general best practices${variables.userPrompt ? ' and the ADDITIONAL USER INSTRUCTIONS' : ''}.`}
     ${variables.userPrompt ? 'Also consider the ADDITIONAL USER INSTRUCTIONS below when analyzing.' : ''}
     Don't change the name of any item on the INPUT.
 
-REPORT SETTINGS:
+${variables.includeSettings ? `REPORT SETTINGS:
     The report shows \${mainFilter}s clustered by the following filters: \${moreFilters}.
     The report focuses on \${reportView}, \${leftProperty} and \${rightProperty}.
 
 FIELD DEFINITIONS AND VALUES:
-    \${fieldTranslations}
+    \${fieldTranslations}` : ''}
 
 ${variables.userPrompt ? `ADDITIONAL USER INSTRUCTIONS:
     \${userPrompt}` : ''}

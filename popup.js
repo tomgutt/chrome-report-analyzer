@@ -672,6 +672,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Read the user-provided prompt (if any)
       const userPromptText = userPromptInput.value.trim();
 
+      // Get the settings toggle state
+      const includeSettings = document.getElementById('includeSettings').checked;
+
       // Fill the prompt template – note the extra "userPrompt" variable added!
       const promptVariables = {
         mainFilter: reportInfo.mainFilter,
@@ -680,7 +683,8 @@ document.addEventListener('DOMContentLoaded', function() {
         leftProperty: reportInfo.properties.left || 'None',
         rightProperty: reportInfo.properties.right || 'None',
         reportInfo: reportInfo,  // The complete report info
-        userPrompt: userPromptText // Additional instructions from the user (optional)
+        userPrompt: userPromptText, // Additional instructions from the user (optional)
+        includeSettings: includeSettings // Whether to include report settings in analysis
       };
       const prompt = fillPromptTemplate(promptVariables, settings);
       
