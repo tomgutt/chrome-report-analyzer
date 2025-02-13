@@ -73,7 +73,7 @@ ${variables.userPrompt ? `ADDITIONAL USER INSTRUCTIONS:
 
 OUTPUT:
     Sort the list so that the most problematic or relevant \${mainFilter} is at the top.
-    Give me no more than 20 results.
+    Give me no more than \${maxResults} results.
 `;
 
 // When JSON Output Mode is used
@@ -108,7 +108,7 @@ OUTPUT:
     Don't list any other information from the INPUT.
     Sort the list so that the most problematic or relevant \${mainFilter} is at the top.
     Only respond with JSON and no additional text.
-    Give me no more than 20 results.
+    Give me no more than \${maxResults} results.
 `;
 
 // When Text Mode is used
@@ -144,7 +144,7 @@ OUTPUT:
     Don't list any other information from the INPUT.
     Sort the list so that the most problematic or relevant \${mainFilter} is at the top.
     Only respond with JSON and no additional text.
-    Give me no more than 20 results.
+    Give me no more than \${maxResults} results.
 `;
 
 /**

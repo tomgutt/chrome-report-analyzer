@@ -675,6 +675,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Get the settings toggle state
       const includeSettings = document.getElementById('includeSettings').checked;
 
+      // Get the max results value
+      const maxResults = document.getElementById('maxResults').value;
+
       // Fill the prompt template – note the extra "userPrompt" variable added!
       const promptVariables = {
         mainFilter: reportInfo.mainFilter,
@@ -684,7 +687,8 @@ document.addEventListener('DOMContentLoaded', function() {
         rightProperty: reportInfo.properties.right || 'None',
         reportInfo: reportInfo,  // The complete report info
         userPrompt: userPromptText, // Additional instructions from the user (optional)
-        includeSettings: includeSettings // Whether to include report settings in analysis
+        includeSettings: includeSettings, // Whether to include report settings in analysis
+        maxResults: maxResults // Maximum number of results to return
       };
       const prompt = fillPromptTemplate(promptVariables, settings);
       
@@ -920,7 +924,6 @@ document.addEventListener('DOMContentLoaded', function() {
     } else if (settings.useJsonMode) {
       requestBody.response_format = { type: "json_object" };
     }
-
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -1035,7 +1038,6 @@ document.addEventListener('DOMContentLoaded', function() {
     } else if (settings.useJsonMode) {
       requestBody.response_format = { type: "json_object" };
     }
-
     const response = await fetch(
       `${settings.endpoint}/api/v1/completions`,
       {
@@ -1246,3 +1248,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
   testConnectionBtn.addEventListener('click', testConnection);
 });
+
+

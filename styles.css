@@ -18,7 +18,7 @@
 body {
   width: 500px;
   min-height: 400px;
-  padding: 20px;
+  padding: 10px 20px;
   font-family: '72', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   color: #32363a;
   margin: 0;
@@ -27,7 +27,7 @@ body {
 .container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   height: auto;
   min-height: 100px;
   max-height: none;
@@ -703,4 +703,45 @@ input:checked + .slider:before {
 .properties-container .detail-value {
   flex: 1;
   min-width: 0;
+}
+
+.max-results-container {
+  padding: 4px 0;
+}
+
+.max-results-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #32363a;
+}
+
+.max-results-label .input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.max-results-label .help-text {
+  font-size: 11px;
+  color: #6a6d70;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.max-results-input {
+  width: 60px;
+  padding: 4px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-family: '72', sans-serif;
+  font-size: 13px;
+  color: #32363a;
+}
+
+.max-results-input:focus {
+  border-color: #0070f2;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 112, 242, 0.2);
 }
